@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+pub const MAX_SUPERADMINS: usize = 3;
+pub const MAX_OPERATORS: usize = 10;
 
 #[account]
 #[derive(InitSpace)]
