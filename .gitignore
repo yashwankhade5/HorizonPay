@@ -1,0 +1,60 @@
+# =========================
+# GENERAL
+# =========================
+node_modules/
+dist/
+build/
+*.log
+*.tsbuildinfo
+
+# =========================
+# ENV FILES (VERY IMPORTANT)
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# BACKEND (Node + Prisma)
+# =========================
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/yarn.lock
+
+# Prisma
+backend/prisma/migrations/
+
+# =========================
+# FRONTEND (Next.js)
+# =========================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*
+frontend/.vercel/
+
+# =========================
+# SOLANA / ANCHOR CONTRACT
+# =========================
+horizon-contract/target/
+horizon-contract/.anchor/
+horizon-contract/node_modules/
+horizon-contract/.surfpool/
+horizon-contract/yarn.lock
+
+# Anchor artifacts
+**/*.so
+**/*.json
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# EDITOR
+# =========================
+.vscode/
+.idea/

@@ -1,0 +1,36 @@
+
+action "horizon_contract_funds_released" "svm::deploy_subgraph" {
+    program_id = action.deploy_horizon_contract.program_id
+    program_idl = action.deploy_horizon_contract.program_idl
+    block_height = 0 // action.deploy_horizon_contract.block_height
+    event {
+        name = "FundsReleased"
+    }
+}
+
+action "horizon_contract_payment_received" "svm::deploy_subgraph" {
+    program_id = action.deploy_horizon_contract.program_id
+    program_idl = action.deploy_horizon_contract.program_idl
+    block_height = 0 // action.deploy_horizon_contract.block_height
+    event {
+        name = "PaymentReceived"
+    }
+}
+
+action "horizon_contract_vault_frozen" "svm::deploy_subgraph" {
+    program_id = action.deploy_horizon_contract.program_id
+    program_idl = action.deploy_horizon_contract.program_idl
+    block_height = 0 // action.deploy_horizon_contract.block_height
+    event {
+        name = "VaultFrozen"
+    }
+}
+
+action "horizon_contract_withdraw_executed" "svm::deploy_subgraph" {
+    program_id = action.deploy_horizon_contract.program_id
+    program_idl = action.deploy_horizon_contract.program_idl
+    block_height = 0 // action.deploy_horizon_contract.block_height
+    event {
+        name = "WithdrawExecuted"
+    }
+}
