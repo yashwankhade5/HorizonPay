@@ -1,22 +1,86 @@
-// src/index.ts
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
 
-dotenv.config();
+import { env } from "./config/env";
+
+import checkoutRoutes from "./routes/checkout";
+import paymentRoutes from "./routes/payment";
+import merchantRoutes from "./routes/merchant";
+import webhookRoutes from "./routes/webhook";
+
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+/**
+ * Security middleware
+ */
+app.use(helmet());
+
+/**
+ * CORS
+ */
+app.use(
+  cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+  })
+);
+
+/**
+ * Logging
+ */
+app.use(morgan("combined"));
+
+/**
+ * Body parsing
+ * NOTE:
+ * webhook route needs raw body for HMAC verification,
+ * so mount webhook route BEFORE express.json()
+ */
+app.use("/webhook", express.raw({ type: "application/json" }), webhookRoutes);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+/**
+ * Health check
+ */
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "backend",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+/**
+ * API Routes
+ */
+app.use("/checkout", checkoutRoutes);
+app.use("/payment", paymentRoutes);
+app.use("/merchant", merchantRoutes);
+
+/**
+ * 404 fallback
+ */
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Route not found",
+  });
 });
 
-export default app;
+/**
+ * Global error handler
+ */
+app.use(errorHandler);
+
+/**
+ * Start server
+ */
+app.listen(env.PORT, () => {
+  console.log(`Backend server running on port ${env.PORT}`);
+});

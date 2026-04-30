@@ -5,9 +5,96 @@
 
 generator client {
   provider = "prisma-client"
+  previewFeatures = ["driverAdapters"]
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  
+   
+}
+
+model Merchant {
+  id                  String   @id @default(uuid())
+  walletPubkey        String   @unique @map("wallet_pubkey")
+  secretKeyId         String   @unique @map("secret_key_id")
+  secretKeyHash       String   @map("secret_key_hash")
+  publishableKeyId    String   @unique @map("publishable_key_id")
+  publishableKeyHash  String   @map("publishable_key_hash")
+  webhookUrl          String?  @map("webhook_url")
+  webhookSecretHash   String?  @map("webhook_secret_hash")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  paymentIntents  PaymentIntent[]
+  transactions    Transaction[]
+  recurring       Recurring[]
+  webhookLogs     WebhookLog[]
+
+  @@map("merchants")
+}
+
+model PaymentIntent {
+  id             String   @id @default(uuid())
+  merchantId     String   @map("merchant_id")
+  orderId        String   @map("order_id")
+  amount         BigInt
+  userPubkey     String   @map("user_pubkey")
+  idempotencyKey String   @unique @map("idempotency_key")
+  status         String   @default("pending")  // pending | submitted | confirmed | failed
+  unsignedTx     String   @map("unsigned_tx")  // base64-encoded unsigned transaction
+  createdAt      DateTime @default(now()) @map("created_at")
+  expiresAt      DateTime @default(dbgenerated("NOW() + INTERVAL '10 minutes'")) @map("expires_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([status, expiresAt], map: "payment_intents_status_expires_at_idx")
+  @@map("payment_intents")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  merchantId  String   @map("merchant_id")
+  txSignature String   @unique @map("tx_signature")
+  amount      BigInt
+  userPubkey  String   @map("user_pubkey")
+  orderId     String   @map("order_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId, createdAt], map: "transactions_merchant_id_created_at_idx")
+  @@map("transactions")
+}
+
+model Recurring {
+  id                   String   @id @default(uuid())
+  merchantId           String   @map("merchant_id")
+  userPubkey           String   @map("user_pubkey")
+  subscriptionId       BigInt   @map("subscription_id")
+  amount               BigInt
+  nextPaymentTimestamp BigInt   @map("next_payment_timestamp")  // unix ts, mirrors RecurringPDA
+  lastFailureReason    String?  @map("last_failure_reason")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@unique([userPubkey, merchantId, subscriptionId])
+  @@index([nextPaymentTimestamp], map: "recurring_next_payment_timestamp_idx")
+  @@map("recurring")
+}
+
+model WebhookLog {
+  id          String    @id @default(uuid())
+  merchantId  String    @map("merchant_id")
+  eventType   String    @map("event_type")
+  payload     Json
+  delivered   Boolean   @default(false)
+  attempts    Int       @default(0)
+  lastAttempt DateTime? @map("last_attempt")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@map("webhook_log")
 }
