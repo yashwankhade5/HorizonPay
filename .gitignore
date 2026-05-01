@@ -45,7 +45,7 @@ horizon-contract/yarn.lock
 
 # Anchor artifacts
 **/*.so
-**/*.json
+
 
 # =========================
 # OS FILES
