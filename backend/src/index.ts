@@ -7,7 +7,7 @@ import { env } from "./config/env";
 
 import checkoutRoutes from "./routes/checkout";
 import paymentRoutes from "./routes/payment";
-import merchantRoutes from "./routes/merchant";
+import merchantRoutes from "./routes/ merchant";
 import webhookRoutes from "./routes/webhook";
 
 import { errorHandler } from "./middleware/errorHandler";

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../config/prisma";
 
 export interface AuthenticatedRequest extends Request {
   merchant?: {

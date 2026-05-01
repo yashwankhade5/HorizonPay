@@ -63,14 +63,7 @@ function hashSecret(secret: string): string {
 /**
  * timing-safe compare
  */
-// function safeCompare(a: string, b: string): boolean {
-//   const aBuf = Buffer.from(a, "hex");
-//   const bBuf = Buffer.from(b, "hex");
 
-//   if (aBuf.length !== bBuf.length) return false;
-
-//   return crypto.timingSafeEqual(aBuf, bBuf);
-// }
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== 64 || b.length !== 64) {
     throw new Error("Hash length invariant violated — possible DB corruption");

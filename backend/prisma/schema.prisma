@@ -15,17 +15,30 @@ datasource db {
    
 }
 
-model Merchant {
-  id                  String   @id @default(uuid())
-  walletPubkey        String   @unique @map("wallet_pubkey")
-  secretKeyId         String   @unique @map("secret_key_id")
-  secretKeyHash       String   @map("secret_key_hash")
-  publishableKeyId    String   @unique @map("publishable_key_id")
-  publishableKeyHash  String   @map("publishable_key_hash")
-  webhookUrl          String?  @map("webhook_url")
-  webhookSecretHash   String?  @map("webhook_secret_hash")
-  createdAt           DateTime @default(now()) @map("created_at")
+model MerchantAccount {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  merchant     Merchant?
+  @@map("merchant_accounts")
+}
 
+model Merchant {
+  id                  String          @id @default(uuid())
+  accountId           String          @unique @map("account_id")
+  walletPubkey        String          @unique @map("wallet_pubkey")
+  merchantPda         String          @unique @map("merchant_pda")
+  merchantVault       String          @unique @map("merchant_vault")
+  secretKeyId         String          @unique @map("secret_key_id")
+  secretKeyHash       String          @map("secret_key_hash")
+  publishableKeyId    String          @unique @map("publishable_key_id")
+  publishableKeyHash  String          @map("publishable_key_hash")
+  webhookUrl          String?         @map("webhook_url")
+  webhookSecretHash   String?         @map("webhook_secret_hash")
+  createdAt           DateTime        @default(now()) @map("created_at")
+
+  account         MerchantAccount  @relation(fields: [accountId], references: [id])
   paymentIntents  PaymentIntent[]
   transactions    Transaction[]
   recurring       Recurring[]
@@ -60,7 +73,7 @@ model Transaction {
   userPubkey  String   @map("user_pubkey")
   orderId     String   @map("order_id")
   createdAt   DateTime @default(now()) @map("created_at")
-
+ paymentIntentId   String   @unique   
   merchant Merchant @relation(fields: [merchantId], references: [id])
 
   @@index([merchantId, createdAt], map: "transactions_merchant_id_created_at_idx")

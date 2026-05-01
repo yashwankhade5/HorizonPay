@@ -3,6 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import { prisma } from '../config/prisma';
 import { buildUnsignedPayTx } from './solana.service';
 import { MIN_PAYMENT_AMOUNT } from '../config/constants';
+import { buildIdempotencyKey } from "../lib/idempotency";
 
 
 
@@ -33,9 +34,9 @@ export interface CheckoutSessionResult {
  * Stored with a UNIQUE constraint — duplicate requests hit a DB conflict
  * before any tx is built.
  */
-function buildIdempotencyKey(merchantId: string, orderId: string, amount: bigint): string {
-  return `${merchantId}:${orderId}:${amount.toString()}`;
-}
+// function buildIdempotencyKey(merchantId: string, orderId: string, amount: bigint): string {
+//   return `${merchantId}:${orderId}:${amount.toString()}`;
+// }
 
 // ---------------------------------------------------------------------------
 // Validation
