@@ -1,7 +1,7 @@
 // backend/src/routes/checkout.ts
 
 import { Router } from "express";
-import { createCheckoutSessionHandler } from "../services/checkout.service";
+import { createCheckoutSession } from "../services/checkout.service";
 
 const router = Router();
 
@@ -9,6 +9,6 @@ const router = Router();
  * POST /checkout/session
  * Create checkout session for payment
  */
-router.post("/session", createCheckoutSessionHandler);
+router.post("/session", createCheckoutSession);
 
 export default router;

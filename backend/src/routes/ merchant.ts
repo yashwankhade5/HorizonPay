@@ -2,10 +2,10 @@
 
 import { Router } from "express";
 import {
-  createMerchantHandler,
-  getMerchantProfileHandler,
-  rotateApiKeysHandler,
-  updateWebhookHandler,
+  createMerchant,
+  getMerchantById,
+  rotateApiKey,
+  rotateWebhookSecret,
 } from "../services/merchant.service";
 
 const router = Router();
@@ -14,24 +14,26 @@ const router = Router();
  * POST /merchant
  * Create merchant account
  */
-router.post("/", createMerchantHandler);
+router.post("/",createMerchantprofile)
+
+router.post("/activate", createMerchant);
 
 /**
  * GET /merchant/profile
  * Get current merchant profile
  */
-router.get("/profile", getMerchantProfileHandler);
+router.get("/profile", getMerchantById);
 
 /**
  * POST /merchant/rotate-keys
  * Rotate publishable + secret keys
  */
-router.post("/rotate-keys", rotateApiKeysHandler);
+router.post("/rotate-keys", rotateApiKey);
 
 /**
  * POST /merchant/webhook
  * Update merchant webhook URL
  */
-router.post("/webhook", updateWebhookHandler);
+router.post("/webhook", rotateWebhookSecret);
 
 export default router;

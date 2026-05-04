@@ -2,6 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma";
 import { env } from "../config/env";
+import { string } from "zod";
 
 // ---------------------------------------------------------------------------
 // Types
