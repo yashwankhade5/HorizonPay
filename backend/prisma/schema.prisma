@@ -44,6 +44,8 @@ model Merchant {
   recurring       Recurring[]
   webhookLogs     WebhookLog[]
 
+   @@index([walletPubkey])
+
   @@map("merchants")
 }
 

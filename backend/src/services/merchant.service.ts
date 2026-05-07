@@ -3,6 +3,9 @@ import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma";
 import { env } from "../config/env";
 import { string } from "zod";
+import dotenv from "dotenv";
+import { deriveAdminPDA, deriveMerchantPDA,deriveMerchantVaultPDA } from "../services/solana.service";
+import { PublicKey } from "@solana/web3.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,7 +83,8 @@ async function hashWebhookSecret(secret: string): Promise<string> {
  * - Returns raw keys ONCE
  */
 export async function createMerchant(
-  input: CreateMerchantInput
+  input: CreateMerchantInput,
+  accountId:string
 ): Promise<MerchantWithKeys> {
   if (!input.walletPubkey) {
     throw Object.assign(new Error("walletPubkey is required"), {
@@ -88,6 +92,14 @@ export async function createMerchant(
     });
   }
 
+
+  const existing = await prisma.merchant.findUnique({
+  where: {accountId },
+});
+
+if (existing) {
+  throw new Error("Merchant already exists");
+}
   // -----------------------------------------------------------------------
   // Generate keys
   // -----------------------------------------------------------------------
@@ -121,15 +133,22 @@ export async function createMerchant(
   // -----------------------------------------------------------------------
 
   const merchant = await prisma.merchant.create({
-    data: {
-      walletPubkey: input.walletPubkey,
-      secretKeyId,
-      secretKeyHash,
-      publishableKeyId,
-      publishableKeyHash,
-      webhookUrl: input.webhookUrl,
-      webhookSecretHash,
-    },
+     data: {
+    walletPubkey: input.walletPubkey,
+
+    merchantPda: deriveMerchantPDA(input.walletPubkey,deriveAdminPDA("6Nic5MhyquEJ6QzBcUey55MZSd9145XNundb3fjdDSXQ")[0].toString())[0].toBase58(),
+    merchantVault: deriveMerchantVaultPDA(deriveMerchantPDA(input.walletPubkey,deriveAdminPDA("6Nic5MhyquEJ6QzBcUey55MZSd9145XNundb3fjdDSXQ")[0].toString())[0])[0].toBase58(),
+
+    accountId, // ✅ correct field name
+
+    secretKeyId,
+    secretKeyHash,
+    publishableKeyId,
+    publishableKeyHash,
+
+    webhookUrl: input.webhookUrl,
+    webhookSecretHash,
+  },
   });
 
   return {

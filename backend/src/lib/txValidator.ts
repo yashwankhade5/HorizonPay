@@ -23,7 +23,7 @@ function readU64LE(buffer: Buffer, offset: number): BN {
   return new BN(buffer.slice(offset, offset + 8), "le");
 }
 
-export async function validate(params: {
+export async function txValidator(params: {
   tx: Transaction;
   expectedProgramId: string;
   expectedMerchantPda: string;   // IMPORTANT rename

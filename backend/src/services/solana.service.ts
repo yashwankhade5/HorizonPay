@@ -30,7 +30,7 @@ const backendKeypair = Keypair.fromSecretKey(
 
 const wallet = new Wallet(backendKeypair);
 
-const connection = new Connection(env.SOLANA_RPC_URL, "confirmed");
+export const connection = new Connection(env.SOLANA_RPC_URL, "confirmed");
 
 export const provider = new AnchorProvider(
   connection,
@@ -152,18 +152,22 @@ export async function validateSignedTransaction(
     merchantPubkey: string;
     adminPubkey: string;
     amount: string;
+    mint:string
   }
 ) {
   const tx = Transaction.from(
     Buffer.from(signedTxBase64, "base64")
   );
 
-  await txValidator.validate({
+  await txValidator({
     tx,
     expectedProgramId: program.programId.toBase58(),
-    expectedMerchantPubkey: expected.merchantPubkey,
-    expectedAdminPubkey: expected.adminPubkey,
+    expectedMerchantPda: expected.merchantPubkey,
+    expectedAdminPda: expected.adminPubkey,
     expectedAmount: expected.amount,
+    
+ 
+  expectedMint: expected.mint
   });
 }
 
@@ -186,14 +190,14 @@ export async function sendSignedTransaction(
 
   const latestBlockhash = await connection.getLatestBlockhash("confirmed");
 
-await connection.confirmTransaction(
-  {
-    signature,
-    blockhash: latestBlockhash.blockhash,
-    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-  },
-  "confirmed"
-);
+// await connection.confirmTransaction(
+//   {
+//     signature,
+//     blockhash: latestBlockhash.blockhash,
+//     lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+//   },
+//   "confirmed"
+// );
 
   return signature;
 }
@@ -265,4 +269,64 @@ export async function buildWithdrawTransaction(params: {
     requireAllSignatures: false,
     verifySignatures: false,
   }).toString("base64");
+}
+
+/**
+ * -------------------------------------------------------
+ * BUILD Activate TX
+ * -------------------------------------------------------
+ */
+
+export async function buildActivateTransaction(params: {
+  merchantPubkey: string;
+  adminPubkey: string;
+ 
+}): Promise<{
+  tx: string;
+  merchantPda: string;
+  merchantVault: string;
+}> {
+  let mint = "HGEkZnaCAg6USfEjgZndEZRvCVCkaRR8cxwhkmucKqXN"
+  const { merchantPubkey, adminPubkey } = params;
+
+  const merchant = new PublicKey(merchantPubkey);
+  const admin = new PublicKey(adminPubkey);
+
+  // ✅ Derive PDAs (CRITICAL)
+  const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPubkey);
+  const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
+
+  // ✅ Build transaction
+  const tx = await program.methods
+    .createMerchant()
+    .accountsPartial({
+      signer: merchant,
+      admin,
+      merchantPda,
+      merchantVault,
+      mint: new PublicKey(mint),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: new PublicKey("11111111111111111111111111111111"),
+    })
+    .transaction();
+
+  // ✅ Add blockhash
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+
+  tx.feePayer = merchant;
+  tx.recentBlockhash = blockhash;
+  console.log(blockhash)
+  console.log(tx.recentBlockhash)
+  let serializetx =  tx
+      .serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      })
+
+  return {
+    tx:serializetx.toString("base64"),
+
+    merchantPda: merchantPda.toBase58(),
+    merchantVault: merchantVault.toBase58(),
+  };
 }

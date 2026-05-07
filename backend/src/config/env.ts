@@ -22,7 +22,7 @@ const envSchema = z.object({
 
   WEBHOOK_BASE_URL: z.string().url(),
   CHECKOUT_BASE_URL: z.string().url(),
- CHECKOUT_SESSION_SECRET: z.string().url(),
+ CHECKOUT_SESSION_SECRET: z.string(),
 
   PROGRAM_ID: z.string().min(1),
 

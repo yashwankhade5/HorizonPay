@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma";
+import jwt from "jsonwebtoken";
+
 
 export interface AuthenticatedRequest extends Request {
   merchant?: {
@@ -10,87 +12,127 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export async function auth(
-  req: AuthenticatedRequest,
+
+
+export async function signupmerchantprofile(
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
-  try {
-    const apiKey = req.header("x-api-key");
+  
+ try {
+    const { email, password } = req.body;
 
-    if (!apiKey) {
-      return res.status(401).json({
-        success: false,
-        error: "Missing API key",
-      });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
     }
 
-    /**
-     * Fetch merchants with hashed keys
-     * NOTE:
-     * bcrypt hashes are one-way, so we must compare in memory
-     */
-    const merchants = await prisma.merchant.findMany({
-      select: {
-        id: true,
-        walletPubkey: true,
-        secretKeyHash: true,
-        publishableKeyHash: true,
+    const existingUser = await prisma.merchantAccount.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    // 🔐 Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.merchantAccount.create({
+      data: {
+        email,
+       passwordHash: hashedPassword,
       },
     });
 
-    let matchedMerchant: AuthenticatedRequest["merchant"] | null = null;
+    return res.status(201).json({
+      message: "User created",
+      user: {
+        id: user.id,
+        email: user.email,
+      },
 
-    for (const merchant of merchants) {
-      const isSecret = await bcrypt.compare(apiKey, merchant.secretKeyHash);
-      if (isSecret) {
-        matchedMerchant = {
-          id: merchant.id,
-          walletPubkey: merchant.walletPubkey,
-          keyType: "secret",
-        };
-        break;
-      }
-
-      const isPublishable = await bcrypt.compare(
-        apiKey,
-        merchant.publishableKeyHash
-      );
-
-      if (isPublishable) {
-        matchedMerchant = {
-          id: merchant.id,
-          walletPubkey: merchant.walletPubkey,
-          keyType: "publishable",
-        };
-        break;
-      }
-    }
-
-    if (!matchedMerchant) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid API key",
-      });
-    }
-
-    /**
-     * Publishable keys are restricted
-     */
-    if (
-      matchedMerchant.keyType === "publishable" &&
-      !(req.method === "POST" && req.path === "/session")
-    ) {
-      return res.status(403).json({
-        success: false,
-        error: "Publishable key not allowed for this route",
-      });
-    }
-
-    req.merchant = matchedMerchant;
-
-    next();
+    })
   } catch (error) {
     next(error);
   }
 }
+export async function loginmerchant(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try{
+   const { email, password } = req.body;
+
+    // 1. Basic validation
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    // 2. Fetch user from DB
+    const user = await prisma.merchantAccount.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // 3. Compare password
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // 4. Create JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET!, // must be 32+ chars
+      { expiresIn: "7d" }
+    );
+
+    // 5. Send token in response
+    return res.json({
+      message: "Login successful",
+      token
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export interface AuthRequest extends Request {
+  userId?: string;
+  email?: string;
+}
+
+export const verifyJWT = (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing or invalid token" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      throw new Error("JWT_SECRET not configured");
+    }
+
+    // Decode token
+    const decoded = jwt.verify(token, secret) as { userId: string; email: string };
+
+    // Attach to req
+    req.userId = decoded.userId;
+    req.email = decoded.email;
+
+    return next(); // continue to route handler
+
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
