@@ -10,12 +10,17 @@ import {
   Program,
   Wallet
 } from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID} from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { env } from "../config/env";
 import { idl } from "../config/idl";
 import { txValidator } from "../lib/txValidator";
-import {HorizonContract} from "../config/horizon_contract_types"
+import { HorizonContract } from "../config/horizon_contract_types"
 import bs58 from "bs58";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+
+import dotenv from "dotenv";
+dotenv.config();
+
 
 /**
  * -------------------------------------------------------
@@ -86,6 +91,30 @@ export function deriveMerchantVaultPDA(
   );
 }
 
+
+
+/**
+ * -------------------------------------------------------
+ * ATA HELPERS
+ * -------------------------------------------------------
+ */
+
+
+
+export async function deriveATA(
+  wallet: string | PublicKey,
+  mint: string | PublicKey
+): Promise<PublicKey> {
+  const walletPk = typeof wallet === "string" ? new PublicKey(wallet) : wallet;
+  const mintPk = typeof mint === "string" ? new PublicKey(mint) : mint;
+
+  return await getAssociatedTokenAddress(
+    mintPk,       // mint
+    walletPk,     // owner
+    false         // allowOwnerOffCurve
+  );
+}
+
 /**
  * -------------------------------------------------------
  * BUILD PAY TRANSACTION
@@ -94,25 +123,22 @@ export function deriveMerchantVaultPDA(
 
 export async function buildPaymentTransaction(params: {
   userPubkey: string;
-  userAta: string;
   merchantPubkey: string;
-  adminPubkey: string;
-  adminFeeVault: string;
-  mint: string;
   amount: string;
 }): Promise<string> {
   const {
     userPubkey,
-    userAta,
     merchantPubkey,
-    adminPubkey,
-    adminFeeVault,
-    mint,
     amount,
   } = params;
 
+
+  const mint = env.MINT_ADDRESS
+  const userAta = deriveATA(userPubkey, mint)
+  const adminPubkey = env.ADMIN_KEYPAIR
+  const adminFeeVault = env.ADMIN_FEE_VAULT
   const [adminPda] = deriveAdminPDA(adminPubkey);
-  const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPubkey);
+  const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPda.toString());
   const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
 
   const tx = await program.methods
@@ -125,7 +151,7 @@ export async function buildPaymentTransaction(params: {
       merchantVault,
       adminFeeVault: new PublicKey(adminFeeVault),
       mint: new PublicKey(mint),
-      tokenProgram:TOKEN_PROGRAM_ID
+      tokenProgram: TOKEN_PROGRAM_ID
     })
     .transaction();
 
@@ -152,7 +178,7 @@ export async function validateSignedTransaction(
     merchantPubkey: string;
     adminPubkey: string;
     amount: string;
-    mint:string
+    mint: string
   }
 ) {
   const tx = Transaction.from(
@@ -165,9 +191,9 @@ export async function validateSignedTransaction(
     expectedMerchantPda: expected.merchantPubkey,
     expectedAdminPda: expected.adminPubkey,
     expectedAmount: expected.amount,
-    
- 
-  expectedMint: expected.mint
+
+
+    expectedMint: expected.mint
   });
 }
 
@@ -190,14 +216,6 @@ export async function sendSignedTransaction(
 
   const latestBlockhash = await connection.getLatestBlockhash("confirmed");
 
-// await connection.confirmTransaction(
-//   {
-//     signature,
-//     blockhash: latestBlockhash.blockhash,
-//     lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-//   },
-//   "confirmed"
-// );
 
   return signature;
 }
@@ -256,7 +274,7 @@ export async function buildWithdrawTransaction(params: {
       merchantVault,
       merchantAta: new PublicKey(merchantAta),
       mint: new PublicKey(mint),
-      tokenProgram:TOKEN_PROGRAM_ID,
+      tokenProgram: TOKEN_PROGRAM_ID,
     })
     .transaction();
 
@@ -280,20 +298,21 @@ export async function buildWithdrawTransaction(params: {
 export async function buildActivateTransaction(params: {
   merchantPubkey: string;
   adminPubkey: string;
- 
+
 }): Promise<{
   tx: string;
   merchantPda: string;
   merchantVault: string;
 }> {
-  let mint = "HGEkZnaCAg6USfEjgZndEZRvCVCkaRR8cxwhkmucKqXN"
+  let mint = env.MINT_ADDRESS
+  console.log(env.MINT_ADDRESS)
   const { merchantPubkey, adminPubkey } = params;
 
   const merchant = new PublicKey(merchantPubkey);
-  const admin = new PublicKey(adminPubkey);
+  const admin = deriveAdminPDA(adminPubkey)[0];
 
   // ✅ Derive PDAs (CRITICAL)
-  const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPubkey);
+  const [merchantPda] = deriveMerchantPDA(merchantPubkey, admin.toString());
   const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
 
   // ✅ Build transaction
@@ -317,14 +336,14 @@ export async function buildActivateTransaction(params: {
   tx.recentBlockhash = blockhash;
   console.log(blockhash)
   console.log(tx.recentBlockhash)
-  let serializetx =  tx
-      .serialize({
-        requireAllSignatures: false,
-        verifySignatures: false,
-      })
+  let serializetx = tx
+    .serialize({
+      requireAllSignatures: false,
+      verifySignatures: false,
+    })
 
   return {
-    tx:serializetx.toString("base64"),
+    tx: serializetx.toString("base64"),
 
     merchantPda: merchantPda.toBase58(),
     merchantVault: merchantVault.toBase58(),

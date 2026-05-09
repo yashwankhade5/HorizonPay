@@ -1,52 +1,68 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
+
 import {
   Connection,
   Keypair,
   PublicKey,
   SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction
 } from "@solana/web3.js";
+
+import {
+  createMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
 import fs from "fs";
 import path from "path";
 
-import { idl } from "../config/idl";
-import type { HorizonContract } from "../config/horizon_contract_types";
+import {idl} from "../config/idl";
+import { HorizonContract } from "../config/horizon_contract_types";
+import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
-// -----------------------------
+// ------------------------------------------------
 // CONFIG
-// -----------------------------
+// ------------------------------------------------
 
 const RPC_URL = "http://127.0.0.1:8899";
 
-// your admin wallet keypair json
 const KEYPAIR_PATH = path.resolve(
   process.env.HOME!,
   ".config/solana/id.json"
 );
 
-// token account that receives fees
-const ADMIN_FEE_VAULT = new PublicKey(
-  "YOUR_TOKEN_ACCOUNT_HERE"
-);
-
-// -----------------------------
-// SETUP
-// -----------------------------
-
-const connection = new Connection(RPC_URL, "confirmed");
+// ------------------------------------------------
+// LOAD WALLET
+// ------------------------------------------------
 
 const secret = JSON.parse(
   fs.readFileSync(KEYPAIR_PATH, "utf-8")
 );
 
-const wallet = Keypair.fromSecretKey(
+const signer = Keypair.fromSecretKey(
   Uint8Array.from(secret)
 );
 
+// ------------------------------------------------
+// CONNECTION
+// ------------------------------------------------
+
+const connection = new Connection(
+  RPC_URL,
+  "confirmed"
+);
+
+// ------------------------------------------------
+// PROVIDER
+// ------------------------------------------------
+
 const provider = new anchor.AnchorProvider(
   connection,
-  new anchor.Wallet(wallet),
+  new anchor.Wallet(signer),
   {
     commitment: "confirmed",
   }
@@ -54,63 +70,231 @@ const provider = new anchor.AnchorProvider(
 
 anchor.setProvider(provider);
 
+// ------------------------------------------------
+// PROGRAM
+// ------------------------------------------------
+
 const program = new Program<HorizonContract>(
   idl as HorizonContract,
   provider
 );
 
-// -----------------------------
-// PDA
-// -----------------------------
+// ------------------------------------------------
+// ADMIN PDA
+// ------------------------------------------------
 
 const [adminPda] = PublicKey.findProgramAddressSync(
   [
     Buffer.from("admin"),
-    wallet.publicKey.toBuffer(),
+    signer.publicKey.toBuffer(),
   ],
   program.programId
 );
 
-// -----------------------------
+// ------------------------------------------------
 // MAIN
-// -----------------------------
+// ------------------------------------------------
 
 async function main() {
-  console.log("Signer:", wallet.publicKey.toBase58());
-  console.log("Admin PDA:", adminPda.toBase58());
+  console.log("\n=== HORIZON SETUP ===\n");
 
-  
-    const mint = await createMint(
-      program.provider.connection,
-      (program.provider as anchor.AnchorProvider).wallet.payer!,
+  console.log(
+    "Admin Wallet:",
+    signer.publicKey.toBase58()
+  );
+
+  // --------------------------------------------
+  // CREATE MINT
+  // --------------------------------------------
+
+  console.log("\nCreating mint...\n");
+
+  const mint = await createMint(
+    connection,
+    signer,
+    signer.publicKey,
+    null,
+    6 // decimals
+  );
+
+  console.log("Mint:", mint.toBase58());
+
+  // --------------------------------------------
+  // CREATE ADMIN ATA
+  // --------------------------------------------
+
+  console.log("\nCreating admin ATA...\n");
+
+  const adminAta =
+    await getOrCreateAssociatedTokenAccount(
+      connection,
       signer,
-      null,
-      6
+      mint,
+      signer.publicKey
+    );
+    const ata = await getOrCreateAssociatedTokenAccount(
+  connection,
+  signer,
+  mint,
+  new PublicKey("3TVcyXxsrLbpYBqQ7y8fWXwfe1cFUBsKzx2qxkkdtSDR"),
+  false,
+  "finalized"
+);
+
+  console.log(
+    "Admin ATA:",
+    adminAta.address.toBase58()
+  );
+  console.log(
+    "buyer ATA:",
+    ata.address.toBase58()
+  );
+
+  // --------------------------------------------
+  // MINT TOKENS
+  // --------------------------------------------
+
+  console.log("\nMinting tokens...\n");
+
+  await mintTo(
+    connection,
+    signer,
+    mint,
+    adminAta.address,
+    signer,
+    1_000_000_000 // 1000 tokens
+  );
+ const mintedtoken = await mintTo(
+    connection,
+    signer,
+    mint,
+    ata.address,
+    signer,
+    1_000_000_000 // 1000 tokens
+  );
+
+  console.log("Minted test tokens");
+  console.log("Minted test tokens buyer ata :", mintedtoken);
+
+  // --------------------------------------------
+  // CHECK ADMIN PDA
+  // --------------------------------------------
+
+  const existing =
+    await connection.getAccountInfo(adminPda);
+
+  if (existing) {
+    console.log(
+      "\nAdmin PDA already initialized"
     );
 
+    console.log(
+      "Admin PDA:",
+      adminPda.toBase58()
+    );
+
+    return;
+  }
+
+  // --------------------------------------------
+  // CREATE ADMIN PDA
+  // --------------------------------------------
+
+  console.log("\nCreating Admin PDA...\n");
 
   const tx = await program.methods
     .createAdmin(
-      [wallet.publicKey], // superadmins
-      [], // operators
-      new anchor.BN(250), // 2.5% fee
-      false, // escrow flag
-      ADMIN_FEE_VAULT
+      [
+        signer.publicKey,
+        signer.publicKey,
+      ], // minimum 2 required
+      [],
+      new anchor.BN(200), // 2%
+      true,
+      adminAta.address
     )
     .accountsPartial({
-      signer: wallet.publicKey,
+      signer: signer.publicKey,
       adminPda,
       systemProgram: SystemProgram.programId,
     })
+    .signers([signer])
     .rpc();
 
-  console.log("TX SIG:", tx);
+  console.log("TX:", tx);
 
-  const account =
-    await program.account.adminPda.fetch(adminPda);
+  // --------------------------------------------
+  // FETCH ADMIN
+  // --------------------------------------------
 
-  console.log("Admin Account:");
-  console.dir(account, { depth: null });
+  const admin =
+    await program.account.adminPda.fetch(
+      adminPda
+    );
+
+  console.log("\n=== ADMIN STATE ===\n");
+
+  console.log({
+    superadmins: admin.superadmins.map(
+      (x: PublicKey) => x.toBase58()
+    ),
+
+    operators: admin.operators.map(
+      (x: PublicKey) => x.toBase58()
+    ),
+
+    platformFeeBps:
+      admin.platformFeeBps.toString(),
+
+    escrowFlag: admin.escrowFlag,
+
+    adminFeeVault:
+      admin.adminFeeVault.toBase58(),
+  });
+
+  console.log("\n=== IMPORTANT ===\n");
+
+  console.log("PROGRAM_ID=");
+  console.log(program.programId.toBase58());
+
+  console.log("\nADMIN_PDA=");
+  console.log(adminPda.toBase58());
+
+  console.log("\nMINT_ADDRESS=");
+  console.log(mint.toBase58());
+
+  console.log("\nADMIN_ATA=");
+  console.log(adminAta.address.toBase58());
+
+  console.log("\n====================\n");
+
+// ---------------------------------------------------
+//  transfer sol
+// --------------------------------------------------
+const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: signer.publicKey,
+        toPubkey: new PublicKey("3TVcyXxsrLbpYBqQ7y8fWXwfe1cFUBsKzx2qxkkdtSDR"),
+        lamports: 1000 * 1000000000, // 0.1 SOL
+      })
+    );
+
+    // Send transaction
+    const signature = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [signer]
+    );
+
+    console.log("Transfer successful!");
+    console.log("Signature:", signature);
+
+    const mintInfo = await connection.getAccountInfo(mint);
+
+console.log("Mint exists:", mintInfo !== null);
+console.log("Mint address:", mint);
+console.log(mintInfo);
+
 }
 
 main().catch(console.error);

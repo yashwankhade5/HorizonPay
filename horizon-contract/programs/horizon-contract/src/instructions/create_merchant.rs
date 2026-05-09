@@ -50,6 +50,7 @@ impl<'info> CreateMerchant<'info> {
             current_date: 0,
         });
 
+        
         Ok(())
     }
 }

@@ -112,6 +112,13 @@ if (existing) {
 
   const secretKey = buildApiKey("sk", secretKeyId, secretKeySecret);
   const publishableKey = buildApiKey("pk", publishableKeyId, publishableKeySecret);
+  console.log("-----------------------------------------------------------------------------------------")
+
+  
+  console.log("secretkey : ",secretKey)
+  console.log("publishablekey : ",publishableKey)
+
+    console.log("-----------------------------------------------------------------------------------------")
 
   const secretKeyHash = hashSecret(secretKeySecret);
   const publishableKeyHash = hashSecret(publishableKeySecret);

@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { PublicKey } from '@solana/web3.js';
 import { prisma } from '../config/prisma';
-import { buildUnsignedPayTx } from './solana.service';
+import { buildPaymentTransaction } from './solana.service';
 import { MIN_PAYMENT_AMOUNT } from '../config/constants';
 import { buildIdempotencyKey } from "../lib/idempotency";
+import { verifyJWT } from "../middleware/auth";
 
 
 
@@ -13,6 +14,7 @@ import { buildIdempotencyKey } from "../lib/idempotency";
 
 export interface CreateCheckoutSessionInput {
   merchantId: string;
+  merchantpubkey: string;
   orderId: string;
   amount: bigint;        // token units (e.g. USDC with 6 decimals)
   userPubkey: string;
@@ -104,10 +106,11 @@ export async function createCheckoutSession(
     // Build unsigned tx before DB write — if tx construction fails, no broken
     // row is persisted. Blockhash here is a placeholder; checkout page refreshes
     // it from RPC immediately before wallet signing.
-    const unsignedTxBase64 = await buildUnsignedPayTx({
-      merchantId: input.merchantId,
-      amount: input.amount,
+    const unsignedTxBase64 = await buildPaymentTransaction({
       userPubkey: input.userPubkey,
+      merchantPubkey: input.merchantpubkey,
+      amount: input.amount.toString(),
+
     });
 
     try {

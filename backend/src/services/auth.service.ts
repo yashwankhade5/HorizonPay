@@ -7,6 +7,7 @@ export type ApiKeyType = "secret" | "publishable";
 export interface AuthenticatedMerchant {
   merchantId: string;
   walletPubkey: string;
+  accountId:string;
   keyType: ApiKeyType;
 }
 
@@ -94,6 +95,7 @@ export async function authenticate(
     select: {
       id: true,
       walletPubkey: true,
+      accountId:true,
       secretKeyHash: true,
       publishableKeyHash: true,
     },
@@ -119,6 +121,7 @@ export async function authenticate(
   return {
     merchantId: merchant.id,
     walletPubkey: merchant.walletPubkey,
+    accountId:merchant.accountId,
     keyType: parsed.keyType,
   };
 }

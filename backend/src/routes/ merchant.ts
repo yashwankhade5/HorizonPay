@@ -40,7 +40,7 @@ router.post("/build-activate-tx",verifyJWT,async (req: AuthRequest, res: Respons
   return res.status(400).json({ error: "Invalid walletPubkey" });
 }
 
-    const adminPubkey = deriveAdminPDA("6Nic5MhyquEJ6QzBcUey55MZSd9145XNundb3fjdDSXQ")[0].toString();
+    const adminPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA";
     const mint = process.env.MINT_ADDRESS!;
 
     const result = await buildActivateTransaction({
@@ -70,7 +70,7 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
           error: "signedTx and walletPubkey required",
         });
       }
-
+ console.log("send tx")
       // 1️⃣ submit tx
       const signature = await sendSignedTransaction(signedTx);
 
@@ -82,13 +82,14 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
       //     status: "pending",
       //   },
       // });
-
+ console.log("fire confirmtx")
       // 3️⃣ fire async confirmation
       confirmMerchantActivationTx({
         signature,
         walletPubkey,
-        accountId: (req as any).user.id,
+        accountId: req.userId!,
       });
+      console.log("accountID----------------",req.userId)
 
       // 4️⃣ immediate response
       return res.json({
@@ -101,12 +102,9 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
       });
     }
   }
-
-
-
-
-
 )
+
+
 /**
  * GET /merchant/profile
  * Get current merchant profile

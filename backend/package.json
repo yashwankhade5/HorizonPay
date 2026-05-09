@@ -48,7 +48,8 @@
     "prisma:migrate": "prisma migrate dev",
     "test": "jest",
 
-    "sign:tx": "ts-node src/scripts/signTx.ts"
+    "sign:tx": "ts-node src/scripts/signTx.ts",
+    "createadmin": "ts-node src/scripts/createAdmin.ts"
   
   }
 }
