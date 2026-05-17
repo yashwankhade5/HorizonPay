@@ -1,8 +1,11 @@
+
 import { prisma } from "../config/prisma";
 import {
   validateSignedTransaction,
   sendSignedTransaction,
 } from "./solana.service";
+import { env } from "../config/env";
+
 
 /**
  * ---------------------------------------------------------------------------
@@ -90,7 +93,7 @@ export async function submitPayment(
     merchantPubkey: merchant.walletPubkey,
     adminPubkey: process.env.ADMIN_PUBKEY!,
     amount: intent.amount.toString(),
-    userPubkey: intent.userPubkey, // ensure correct signer
+    mint:env.MINT_ADDRESS, 
   });
 
   // -------------------------------------------------------------------------
@@ -113,7 +116,7 @@ export async function submitPayment(
     });
 
     if (tx) {
-      return { signature: tx.signature };
+      return { signature: tx.txSignature };
     }
 
     throw Object.assign(
@@ -138,27 +141,31 @@ export async function submitPayment(
   // -------------------------------------------------------------------------
   // 8. Store transaction (idempotent via unique constraint)
   // -------------------------------------------------------------------------
-  try {
-    await prisma.transaction.create({
-      data: {
-        paymentIntentId: intent.id,
-        signature,
-        status: "submitted",
-      },
-    });
-  } catch (err: any) {
-    // handle duplicate insert (if two requests race)
-    if (err.code === "P2002") {
-      const existing = await prisma.transaction.findFirst({
-        where: { paymentIntentId: intent.id },
-      });
+  // try {
+  //   await prisma.transaction.create({
+  //     data: {
+  //       paymentIntentId: intent.id,
+  //       txSignature:signature,
+  //       orderId:intent.orderId,
+  //       amount:intent.amount,
+  //       merchantId:intent.merchantId
+  //       paymentIntentId:intent.id,
+  //       userPubkey:
+  //     },
+  //   });
+  // } catch (err: any) {
+  //   // handle duplicate insert (if two requests race)
+  //   if (err.code === "P2002") {
+  //     const existing = await prisma.transaction.findFirst({
+  //       where: { paymentIntentId: intent.id },
+  //     });
 
-      if (existing) {
-        return { signature: existing.signature };
-      }
-    }
-    throw err;
-  }
+  //     if (existing) {
+  //       return { signature: existing.txSignature };
+  //     }
+  //   }
+  //   throw err;
+  // }
 
   return { signature };
 }

@@ -49,6 +49,7 @@
     "test": "jest",
 
     "sign:tx": "ts-node src/scripts/signTx.ts",
+    "signpay:tx": "ts-node src/scripts/signpay:Tx.ts",
     "createadmin": "ts-node src/scripts/createAdmin.ts"
   
   }

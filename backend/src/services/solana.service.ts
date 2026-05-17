@@ -18,9 +18,6 @@ import { HorizonContract } from "../config/horizon_contract_types"
 import bs58 from "bs58";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 
-import dotenv from "dotenv";
-dotenv.config();
-
 
 /**
  * -------------------------------------------------------
@@ -134,8 +131,8 @@ export async function buildPaymentTransaction(params: {
 
 
   const mint = env.MINT_ADDRESS
-  const userAta = deriveATA(userPubkey, mint)
-  const adminPubkey = env.ADMIN_KEYPAIR
+  const userAta =  await deriveATA(userPubkey, mint)
+  const adminPubkey =Keypair.fromSecretKey(bs58.decode(env.ADMIN_KEYPAIR)).publicKey.toString() 
   const adminFeeVault = env.ADMIN_FEE_VAULT
   const [adminPda] = deriveAdminPDA(adminPubkey);
   const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPda.toString());
@@ -145,7 +142,7 @@ export async function buildPaymentTransaction(params: {
     .pay(new BN(amount))
     .accountsPartial({
       user: new PublicKey(userPubkey),
-      userAta: new PublicKey(userAta),
+      userAta: userAta,
       merchantPda,
       adminPda,
       merchantVault,

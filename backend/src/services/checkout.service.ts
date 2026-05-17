@@ -17,7 +17,7 @@ export interface CreateCheckoutSessionInput {
   merchantpubkey: string;
   orderId: string;
   amount: bigint;        // token units (e.g. USDC with 6 decimals)
-  userPubkey: string;
+  // userPubkey: string;
 }
 
 export interface CheckoutSessionResult {
@@ -57,11 +57,11 @@ function validateInput(input: CreateCheckoutSessionInput): void {
   }
 
   // Validate user_pubkey is a valid base58 Solana address
-  try {
-    new PublicKey(input.userPubkey);
-  } catch {
-    throw Object.assign(new Error('user_pubkey is not a valid Solana public key'), { statusCode: 400 });
-  }
+  // try {
+  //   new PublicKey(input.userPubkey);
+  // } catch {
+  //   throw Object.assign(new Error('user_pubkey is not a valid Solana public key'), { statusCode: 400 });
+  // }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,39 +94,46 @@ export async function createCheckoutSession(
   input: CreateCheckoutSessionInput
 ): Promise<CheckoutSessionResult> {
   validateInput(input);
-
+let userPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA"
   const idempotencyKey = buildIdempotencyKey(input.merchantId, input.orderId, input.amount);
-
+console.log("i am here2")
   // Check for existing intent first to avoid building an unnecessary tx
   let paymentIntent = await prisma.paymentIntent.findUnique({
     where: { idempotencyKey },
   });
 
+console.log("paymentIntent =", paymentIntent);
+console.log("typeof =", typeof paymentIntent);
+
+console.log(process.env.DATABASE_URL);
   if (!paymentIntent) {
+    console.log("i am here3")
     // Build unsigned tx before DB write — if tx construction fails, no broken
     // row is persisted. Blockhash here is a placeholder; checkout page refreshes
     // it from RPC immediately before wallet signing.
     const unsignedTxBase64 = await buildPaymentTransaction({
-      userPubkey: input.userPubkey,
+      userPubkey: userPubkey,
       merchantPubkey: input.merchantpubkey,
       amount: input.amount.toString(),
 
     });
 
     try {
+       console.log("i am here4")
       paymentIntent = await prisma.paymentIntent.create({
         data: {
           id: uuidv4(),
           merchantId: input.merchantId,
           orderId: input.orderId,
           amount: input.amount,
-          userPubkey: input.userPubkey,
+          userPubkey: userPubkey,
           idempotencyKey,
           status: 'pending',
           unsignedTx: unsignedTxBase64,
           // expires_at defaults to NOW() + INTERVAL '10 minutes' in schema
         },
       });
+      console.log(paymentIntent)
     } catch (err: any) {
       // Handle unique constraint race (two concurrent requests for same key)
       if (err.code === 'P2002' && err.meta?.target?.includes('idempotency_key')) {
@@ -138,9 +145,9 @@ export async function createCheckoutSession(
       }
     }
   }
-
+console.log("i am here1")
   const baseUrl = process.env.CHECKOUT_BASE_URL ?? 'https://pay.horizonpay.io';
-  const checkoutUrl = `${baseUrl}/checkout/${paymentIntent.id}`;
+  const checkoutUrl = `${baseUrl}/${paymentIntent.id}`;
 
   return {
     checkoutUrl,
