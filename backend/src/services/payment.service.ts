@@ -5,6 +5,8 @@ import {
   sendSignedTransaction,
 } from "./solana.service";
 import { env } from "../config/env";
+import { Keypair } from "@solana/web3.js";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 
 
 /**
@@ -85,13 +87,14 @@ export async function submitPayment(
       statusCode: 404,
     });
   }
+  const adminPubkey = Keypair.fromSecretKey(bs58.decode(env.ADMIN_KEYPAIR)).publicKey.toString()
 
   // -------------------------------------------------------------------------
   // 5. Validate signed transaction (CRITICAL SECURITY)
   // -------------------------------------------------------------------------
   await validateSignedTransaction(signedTxBase64, {
     merchantPubkey: merchant.walletPubkey,
-    adminPubkey: process.env.ADMIN_PUBKEY!,
+    adminPubkey: adminPubkey,
     amount: intent.amount.toString(),
     mint:env.MINT_ADDRESS, 
   });

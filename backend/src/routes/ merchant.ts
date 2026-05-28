@@ -74,14 +74,7 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
       // 1️⃣ submit tx
       const signature = await sendSignedTransaction(signedTx);
 
-      // 2️⃣ store pending activation
-      // await prisma.merchantActivation.create({
-      //   data: {
-      //     signature,
-      //     walletPubkey,
-      //     status: "pending",
-      //   },
-      // });
+   
  console.log("fire confirmtx")
       // 3️⃣ fire async confirmation
       confirmMerchantActivationTx({

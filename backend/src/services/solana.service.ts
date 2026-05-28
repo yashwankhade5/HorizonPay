@@ -181,12 +181,13 @@ export async function validateSignedTransaction(
   const tx = Transaction.from(
     Buffer.from(signedTxBase64, "base64")
   );
-
+  const [adminPda] = deriveAdminPDA(expected.adminPubkey);
+const [merchantpda] = await deriveMerchantPDA(expected.merchantPubkey,adminPda.toString())
   await txValidator({
     tx,
     expectedProgramId: program.programId.toBase58(),
-    expectedMerchantPda: expected.merchantPubkey,
-    expectedAdminPda: expected.adminPubkey,
+    expectedMerchantPda: merchantpda.toString(),
+    expectedAdminPda: adminPda.toString(),
     expectedAmount: expected.amount,
 
 

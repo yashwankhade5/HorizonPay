@@ -60,7 +60,7 @@ app.get("/health", (_req, res) => {
  * API Routes
  */
 app.use("/checkout", checkoutRoutes);
-// app.use("/payment", paymentRoutes);
+app.use("/payment", paymentRoutes);
 app.use("/merchant", merchantRoutes);
 
 /**
