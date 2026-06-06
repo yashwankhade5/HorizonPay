@@ -2,7 +2,7 @@
 
 import { Router } from "express";
 import { PublicKey } from "@solana/web3.js";
-
+import { env } from "../config/env";
 import type { Request, Response } from "express";
 import {
   createMerchant,
@@ -40,8 +40,8 @@ router.post("/build-activate-tx",verifyJWT,async (req: AuthRequest, res: Respons
   return res.status(400).json({ error: "Invalid walletPubkey" });
 }
 
-    const adminPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA";
-    const mint = process.env.MINT_ADDRESS!;
+    const adminPubkey = env.ADMIN_PUBLICKEY;
+    const mint = env.MINT_ADDRESS;
 
     const result = await buildActivateTransaction({
       merchantPubkey: walletPubkey,
@@ -102,7 +102,64 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
  * GET /merchant/profile
  * Get current merchant profile
  */
-// router.get("/profile", getMerchantById);
+router.get("/profile",verifyJWT,async (req: AuthRequest, res: Response)=> { 
+  
+  
+   try {
+
+      // validate auth payload
+      const merchantId = req.userId;
+
+      if (!merchantId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: missing user identity"
+        });
+      }
+
+
+      // fetch merchant
+      const merchant = await getMerchantById(
+        merchantId
+      );
+
+
+      if (!merchant) {
+        return res.status(404).json({
+          success: false,
+          message: "Merchant not found"
+        });
+      }
+
+
+      return res.status(200).json({
+        success: true,
+        data: { merchantwallet:merchant.walletPubkey,
+          merchantpda:merchant.merchantPda,
+          merchantvault:merchant.merchantVault,
+          merchantsecretkeyhash:merchant.secretKeyId+merchant.secretKeyHash,
+          merchantpublishablehash:merchant.publishableKeyId+merchant.publishableKeyHash
+
+
+        }
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "GET /profile error:",
+        error
+      );
+
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  
+  });
 
 /**
  * POST /merchant/rotate-keys

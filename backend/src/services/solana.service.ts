@@ -51,7 +51,7 @@ export const program = new Program<HorizonContract>(
  * -------------------------------------------------------
  */
 
-export function deriveAdminPDA(adminPubkey: string): [PublicKey, number] {
+export  function deriveAdminPDA(adminPubkey: string): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [
       Buffer.from("admin"),
@@ -63,13 +63,13 @@ export function deriveAdminPDA(adminPubkey: string): [PublicKey, number] {
 
 export function deriveMerchantPDA(
   merchantPubkey: string,
-  adminPubkey: string
+  adminPda: string
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [
       Buffer.from("merchant"),
       new PublicKey(merchantPubkey).toBuffer(),
-      new PublicKey(adminPubkey).toBuffer(),
+      new PublicKey(adminPda).toBuffer(),
     ],
     program.programId
   );
@@ -134,9 +134,11 @@ export async function buildPaymentTransaction(params: {
   const userAta =  await deriveATA(userPubkey, mint)
   const adminPubkey =Keypair.fromSecretKey(bs58.decode(env.ADMIN_KEYPAIR)).publicKey.toString() 
   const adminFeeVault = env.ADMIN_FEE_VAULT
-  const [adminPda] = deriveAdminPDA(adminPubkey);
+  const [adminPda] = deriveAdminPDA(env.ADMIN_PUBLICKEY);
   const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPda.toString());
   const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
+
+  console.log("merchant_pda", merchantPda.toString())
 
   const tx = await program.methods
     .pay(new BN(amount))
@@ -183,6 +185,7 @@ export async function validateSignedTransaction(
   );
   const [adminPda] = deriveAdminPDA(expected.adminPubkey);
 const [merchantpda] = await deriveMerchantPDA(expected.merchantPubkey,adminPda.toString())
+console.log(merchantpda.toString())
   await txValidator({
     tx,
     expectedProgramId: program.programId.toBase58(),

@@ -50,7 +50,8 @@
 
     "sign:tx": "ts-node src/scripts/signTx.ts",
     "signpay:tx": "ts-node src/scripts/signpay:Tx.ts",
-    "createadmin": "ts-node src/scripts/createAdmin.ts"
+    "createadmin": "ts-node src/scripts/createAdmin.ts",
+    "pkeys": "ts-node src/scripts/printkeys.ts"
   
   }
 }

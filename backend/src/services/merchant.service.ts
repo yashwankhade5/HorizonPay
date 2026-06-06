@@ -143,8 +143,8 @@ if (existing) {
      data: {
     walletPubkey: input.walletPubkey,
 
-    merchantPda: deriveMerchantPDA(input.walletPubkey,deriveAdminPDA("6Nic5MhyquEJ6QzBcUey55MZSd9145XNundb3fjdDSXQ")[0].toString())[0].toBase58(),
-    merchantVault: deriveMerchantVaultPDA(deriveMerchantPDA(input.walletPubkey,deriveAdminPDA("6Nic5MhyquEJ6QzBcUey55MZSd9145XNundb3fjdDSXQ")[0].toString())[0])[0].toBase58(),
+    merchantPda: deriveMerchantPDA(input.walletPubkey,deriveAdminPDA(env.ADMIN_PUBLICKEY)[0].toString())[0].toBase58(),
+    merchantVault: deriveMerchantVaultPDA(deriveMerchantPDA(input.walletPubkey,deriveAdminPDA(env.ADMIN_PUBLICKEY)[0].toString())[0])[0].toBase58(),
 
     accountId, // ✅ correct field name
 
@@ -170,9 +170,9 @@ if (existing) {
 /**
  * Get merchant by ID
  */
-export async function getMerchantById(id: string) {
+export async function getMerchantById(accountid: string) {
   const merchant = await prisma.merchant.findUnique({
-    where: { id },
+    where: { accountId:accountid },
   });
 
   if (!merchant) {

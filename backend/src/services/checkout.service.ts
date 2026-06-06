@@ -96,18 +96,15 @@ export async function createCheckoutSession(
   validateInput(input);
 let userPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA"
   const idempotencyKey = buildIdempotencyKey(input.merchantId, input.orderId, input.amount);
-console.log("i am here2")
+
   // Check for existing intent first to avoid building an unnecessary tx
   let paymentIntent = await prisma.paymentIntent.findUnique({
     where: { idempotencyKey },
   });
 
-console.log("paymentIntent =", paymentIntent);
-console.log("typeof =", typeof paymentIntent);
 
-console.log(process.env.DATABASE_URL);
   if (!paymentIntent) {
-    console.log("i am here3")
+    
     // Build unsigned tx before DB write — if tx construction fails, no broken
     // row is persisted. Blockhash here is a placeholder; checkout page refreshes
     // it from RPC immediately before wallet signing.
@@ -119,7 +116,7 @@ console.log(process.env.DATABASE_URL);
     });
 
     try {
-       console.log("i am here4")
+      
       paymentIntent = await prisma.paymentIntent.create({
         data: {
           id: uuidv4(),
@@ -133,7 +130,7 @@ console.log(process.env.DATABASE_URL);
           // expires_at defaults to NOW() + INTERVAL '10 minutes' in schema
         },
       });
-      console.log(paymentIntent)
+      
     } catch (err: any) {
       // Handle unique constraint race (two concurrent requests for same key)
       if (err.code === 'P2002' && err.meta?.target?.includes('idempotency_key')) {

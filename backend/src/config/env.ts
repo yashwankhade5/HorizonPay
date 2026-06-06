@@ -31,6 +31,7 @@ const envSchema = z.object({
   ADMIN_KEYPAIR: z.string().min(1),
   MINT_ADDRESS: z.string().min(1),
   ADMIN_FEE_VAULT: z.string().min(1),
+ ADMIN_PUBLICKEY:z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -87,7 +87,8 @@ export async function submitPayment(
       statusCode: 404,
     });
   }
-  const adminPubkey = Keypair.fromSecretKey(bs58.decode(env.ADMIN_KEYPAIR)).publicKey.toString()
+  // const adminPubkey = Keypair.fromSecretKey(bs58.decode(env.ADMIN_KEYPAIR)).publicKey.toString()
+  const adminPubkey = env.ADMIN_PUBLICKEY
 
   // -------------------------------------------------------------------------
   // 5. Validate signed transaction (CRITICAL SECURITY)
@@ -138,7 +139,19 @@ export async function submitPayment(
   } catch (err: any) {
     // IMPORTANT: we already marked as submitted
     // You may want to implement retry or recovery later
-    throw Object.assign(err, { statusCode: 502 });
+  const updated1 = await prisma.paymentIntent.updateMany({
+    where: {
+      id: intent.id,
+      status: "submitted",
+    },
+    data: {
+      status: "pending",
+    },
+  });
+
+    throw Object.assign(err, { statusCode: 502,
+    
+     });
   }
 
   // -------------------------------------------------------------------------

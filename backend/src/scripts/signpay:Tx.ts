@@ -7,6 +7,27 @@ import {
 import {getAssociatedTokenAddressSync} from "@solana/spl-token"
 import bs58 from "bs58";
 import { env } from "../config/env";
+
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+
+
+async function deriveATA(
+  wallet: string | PublicKey,
+  mint: string | PublicKey
+): Promise<PublicKey> {
+  const walletPk = typeof wallet === "string" ? new PublicKey(wallet) : wallet;
+  const mintPk = typeof mint === "string" ? new PublicKey(mint) : mint;
+
+  return await getAssociatedTokenAddress(
+    mintPk,       // mint
+    walletPk,     // owner
+    false         // allowOwnerOffCurve
+  );
+}
+
+
+
+
 // ⚠️ DEV ONLY
 const RPC_URL = "http://127.0.0.1:8899";
 
@@ -16,7 +37,7 @@ const PRIVATE_KEY =
 
 // Base64 serialized tx
 const BASE64_TX =
-  "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAMI9Q8kklL0PG5aToi4e5AoAIACDRGi21QqjBGObv86pfeOiBXZsFiwLUZLudrgh9igdHIYvSRMT84KWQ8Daj2nMZkwU2VOx46G/6GkqgENi6jR5mOnh1hrvP21p+giXjx7pGVTdGjSWT01I7JeT4+5o0uHyoyZ6rGVs2Nq3m93ALTEf04z32bxLVB6jpmrTJF/NFLtbUGe/fSebcEox1KTBajX5SpK0bIU1/dsGYJWj94di2fy2ZsvLIqePWcgjtowCwb5KrliyarFpFRocEvK85VHyLx09IO36kedKZ8ZE6UG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqQaGhZ04yAqXIUgYQWkX4L+PyhV+Rk+YzP0P+p33pEagAQYIAAECAwQBBQcQdxLYQcB1etyguw0AAAAAAA==";
+  "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAMI9Q8kklL0PG5aToi4e5AoAIACDRGi21QqjBGObv86pfc8H5B4B3QTk0+b+0ouPyE5RJN6vT3huCyBF7UHE70NUVutYxmWZBU6TlL9UosxhcJ8CWwUDsXw7xWSxt5+uwV18+NWvstff4mL2qEfbbMXFZ9RCffKhSvJUdLlkxRGMmf1SofJRV4F4gOVxYfPlwjKUvlqGZxgfypupnz4o6ZhmW869Thb1/LeAetVT0cPIpr7N6r56QQOJV66DRjjVP1oCwb5KrliyarFpFRocEvK85VHyLx09IO36kedKZ8ZE6UG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqQaGhZ04yAqXIUgYQWkX4L+PyhV+Rk+YzP0P+p33oUs8AQYIAAIBAwQCBQcQdxLYQcB1etyguw0AAAAAAA==";
 
 // 1️⃣ Load keypair
 const keypair = Keypair.fromSecretKey(
@@ -42,9 +63,12 @@ async function main() {
 let ix = tx.instructions[0]
 
 ix.keys[0].pubkey = keypair.publicKey
+ix.keys[1].pubkey = await deriveATA(keypair.publicKey,env.MINT_ADDRESS)
+
 const mint = new PublicKey(
   env.MINT_ADDRESS
 );
+
 
 // Derive new ATA
 const newUserAta = getAssociatedTokenAddressSync(

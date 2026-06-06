@@ -22,6 +22,7 @@ if (!req.merchant && !req.paymentData ){
 
   const merchant = req.merchant!;
   const payment = req.paymentData!;
+  console.log("merchnat-pda:",merchant.walletPubkey)
   let checkout = await  createCheckoutSession({
     merchantId:merchant.merchantId,
     merchantpubkey:merchant.walletPubkey,
