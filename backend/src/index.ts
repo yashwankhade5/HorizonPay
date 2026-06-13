@@ -76,7 +76,7 @@ app.use((_req, res) => {
 /**
  * Global error handler
  */
-// app.use(errorHandler);
+app.use(errorHandler);
 
 /**
  * Start server

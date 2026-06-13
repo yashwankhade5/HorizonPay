@@ -19,6 +19,7 @@ const envSchema = z.object({
   WEBHOOK_SECRET: z.string().min(1),
 
   SOLANA_RPC_URL: z.string().url(),
+  SOLANA_WS_URL: z.string().url(),
 
   WEBHOOK_BASE_URL: z.string().url(),
   CHECKOUT_BASE_URL: z.string().url(),

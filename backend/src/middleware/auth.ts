@@ -44,6 +44,11 @@ export async function signupmerchantprofile(
        passwordHash: hashedPassword,
       },
     });
+  const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET!, // must be 32+ chars
+      { expiresIn: "7d" }
+    );
 
     return res.status(201).json({
       message: "User created",
@@ -51,6 +56,7 @@ export async function signupmerchantprofile(
         id: user.id,
         email: user.email,
       },
+      token:token
 
     })
   } catch (error) {
@@ -87,7 +93,7 @@ export async function loginmerchant(
 
     // 4. Create JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id },
       process.env.JWT_SECRET!, // must be 32+ chars
       { expiresIn: "7d" }
     );
@@ -95,7 +101,8 @@ export async function loginmerchant(
     // 5. Send token in response
     return res.json({
       message: "Login successful",
-      token
+      token,
+      AccountActivated:user.activated
     });
   } catch (error) {
     next(error);

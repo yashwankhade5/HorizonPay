@@ -19,6 +19,7 @@ model MerchantAccount {
   id           String    @id @default(uuid())
   email        String    @unique
   passwordHash String    @map("password_hash")
+  activated    Boolean   @default(false) @map("activated")
   createdAt    DateTime  @default(now()) @map("created_at")
   merchant     Merchant?
   @@map("merchant_accounts")
