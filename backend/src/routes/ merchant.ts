@@ -77,11 +77,11 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
    
  console.log("fire confirmtx")
       // 3️⃣ fire async confirmation
-      confirmMerchantActivationTx({
-        signature,
-        walletPubkey,
-        accountId: req.userId!,
-      });
+      // confirmMerchantActivationTx({
+      //   signature,
+      //   walletPubkey,
+      //   accountId: req.userId!,
+      // });
       console.log("accountID----------------",req.userId)
 
       // 4️⃣ immediate response

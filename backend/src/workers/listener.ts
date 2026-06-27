@@ -1,9 +1,10 @@
-// src/listener.ts
+// src/workers/listener.ts
+import { env } from "../config/env";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { BorshCoder, EventParser, Idl } from "@coral-xyz/anchor";
-import { prisma } from "../config/prisma"; // ← your singleton
+import { prisma } from "../config/prisma";
 import { idl as IDL } from "../config/idl";
-import { env } from "../config/env";
+
 
 const PROGRAM_ID = new PublicKey(env.PROGRAM_ID!);
 const RPC_HTTP = env.SOLANA_RPC_URL!;
@@ -52,29 +53,51 @@ async function handlePaymentReceived(
   signature: string
 ) {
   console.log(`⚡ PaymentReceived: ${signature}`);
+  console.log(`   merchant: ${event.merchant.toString()}`);
+  console.log(`   user: ${event.user.toString()}`);
+  console.log(`   amount: ${event.amount.toString()}`);
 
   const merchant = await prisma.merchant.findUnique({
     where: { walletPubkey: event.merchant.toString() },
   });
 
   if (!merchant) {
-    console.error(`Merchant not found: ${event.merchant.toString()}`);
+    console.error(`❌ Merchant not found: ${event.merchant.toString()}`);
     return;
   }
 
+  console.log(`   merchantId in DB: ${merchant.id}`);
+
+  // ── find payment intent ──────────────────────────────────────────────────
+  // check both "pending" and "submitted" — submit endpoint may not have
+  // updated status yet if listener fires before submit response returns
   const paymentIntent = await prisma.paymentIntent.findFirst({
     where: {
       merchantId: merchant.id,
       amount: event.amount,
-      status: "submitted",
+      status: { in: ["pending", "submitted"] },
     },
   });
 
+  if (!paymentIntent) {
+    console.warn(`⚠️  No PaymentIntent found for amount=${event.amount} merchantId=${merchant.id}`);
+    console.warn(`   Will still record transaction — reconciliation handles intent cleanup`);
+  } else {
+    console.log(`   paymentIntentId: ${paymentIntent.id} status: ${paymentIntent.status}`);
+  }
+
+  // ── write atomically ─────────────────────────────────────────────────────
   await prisma.$transaction(async (tx) => {
-    // 1. insert transaction
-    await tx.transaction.upsert({
+    // 1. insert transaction — upsert guards against duplicate processing
+    const transaction = await tx.transaction.upsert({
       where: { txSignature: signature },
-      update: {},
+      update: {
+        merchantId: merchant.id,
+        amount: event.amount,
+        userPubkey: event.user.toString(),
+        orderId: paymentIntent?.orderId ?? "unknown",
+        paymentIntentId: paymentIntent?.id ?? null,
+      },
       create: {
         merchantId: merchant.id,
         txSignature: signature,
@@ -85,11 +108,14 @@ async function handlePaymentReceived(
       },
     });
 
+    console.log(`   ✅ Transaction upserted: ${transaction.id}`);
+
     // 2. delete payment intent
     if (paymentIntent) {
       await tx.paymentIntent.delete({
         where: { id: paymentIntent.id },
       });
+      console.log(`   ✅ PaymentIntent deleted: ${paymentIntent.id}`);
     }
 
     // 3. enqueue webhook
@@ -110,10 +136,11 @@ async function handlePaymentReceived(
           attempts: 0,
         },
       });
+      console.log(`   ✅ Webhook enqueued`);
     }
   });
 
-  console.log(`✅ PaymentReceived done: ${signature}`);
+  console.log(`✅ PaymentReceived fully processed: ${signature}`);
 }
 
 async function handleWithdrawExecuted(
@@ -127,7 +154,7 @@ async function handleWithdrawExecuted(
   });
 
   if (!merchant) {
-    console.error(`Merchant not found: ${event.merchant.toString()}`);
+    console.error(`❌ Merchant not found: ${event.merchant.toString()}`);
     return;
   }
 
@@ -155,7 +182,6 @@ async function handleFundsReleased(
   event: FundsReleased,
   signature: string
 ) {
-  // escrow state lives on-chain — no DB update needed
   console.log(
     `✅ FundsReleased: merchant=${event.merchant.toString()} released=${event.releaseAmount} newWithdrawable=${event.newWithdrawable} sig=${signature}`
   );
@@ -172,7 +198,7 @@ async function handleVaultFrozen(
   });
 
   if (!merchant) {
-    console.error(`Merchant not found: ${event.merchant.toString()}`);
+    console.error(`❌ Merchant not found: ${event.merchant.toString()}`);
     return;
   }
 
@@ -201,39 +227,125 @@ async function handleEscrowAdvanced(
   event: EscrowAdvanced,
   signature: string
 ) {
-  // fully on-chain — just log for ops visibility
   console.log(
     `✅ EscrowAdvanced: merchant=${event.merchant.toString()} slotsAdvanced=${event.slotsAdvanced} released=${event.amountReleased} newWithdrawable=${event.newWithdrawable} sig=${signature}`
   );
 }
 
+
+async function storeRawTransaction(
+  signature: string
+) {
+  try {
+
+    await prisma.transaction.upsert({
+      where: {
+        txSignature: signature,
+      },
+
+      update: {},
+
+      create: {
+        txSignature: signature,
+
+        merchantId: null,
+
+        amount: BigInt(0),
+
+        userPubkey: "unknown",
+
+        orderId: "unknown",
+
+        paymentIntentId: null,
+      },
+    });
+
+
+    console.log(
+      `📦 Raw tx stored: ${signature}`
+    );
+
+
+  } catch (err) {
+
+    console.error(
+      "❌ Failed storing raw tx",
+      err
+    );
+
+  }
+}
+
+
+
 // ─── Core Listener ────────────────────────────────────────────────────────────
 async function startListener() {
+  console.log(
+    "DB:",
+    env.DATABASE_URL
+  );
   const connection = new Connection(RPC_HTTP, {
     wsEndpoint: RPC_WS,
     commitment: "confirmed",
   });
 
+  // ── validate IDL loaded correctly ────────────────────────────────────────
+  if (!IDL || !IDL.events || IDL.events.length === 0) {
+    throw new Error("IDL not loaded or has no events — check ../config/idl");
+  }
+  console.log(`📄 IDL loaded: ${IDL.events.length} events found`);
+  console.log(`   Events: ${IDL.events.map((e: any) => e.name).join(", ")}`);
+
   const coder = new BorshCoder(IDL as Idl);
   const eventParser = new EventParser(PROGRAM_ID, coder);
 
   console.log(`🔌 Subscribing to program: ${PROGRAM_ID.toString()}`);
+  console.log(`   RPC HTTP: ${RPC_HTTP}`);
+  console.log(`   RPC WS:   ${RPC_WS}`);
 
   connection.onLogs(
     PROGRAM_ID,
     async (logs, _ctx) => {
       const { signature, logs: rawLogs, err } = logs;
 
+      // ── log every tx we see ────────────────────────────────────────────
+      console.log(`\n📨 Tx received: ${signature} err=${!!err}`);
+
       if (err) {
-        console.warn(`Skipping failed tx: ${signature}`);
+        console.warn(`   Skipping failed tx`);
         return;
       }
 
       try {
-        const events = [...eventParser.parseLogs(rawLogs)];
-        if (events.length === 0) return;
+        const events = [
+          ...eventParser.parseLogs(rawLogs)
+        ];
+
+
+        console.log(
+          `   Events parsed: ${events.length}`
+        );
+
+
+        // ALWAYS STORE TX
+        await storeRawTransaction(
+          signature
+        );
+
+
+        // no event, already stored
+        if (events.length === 0) {
+
+          console.log(
+            "No Anchor event. Stored only."
+          );
+
+          return;
+        }
 
         for (const event of events) {
+          console.log(`   Event: ${event.name}`);
+
           switch (event.name) {
             case "PaymentReceived":
               await handlePaymentReceived(
@@ -271,18 +383,18 @@ async function startListener() {
               break;
 
             default:
-              console.log(`Unknown event: ${event.name}`);
+              console.log(`   Unknown event: ${event.name}`);
           }
         }
       } catch (err) {
-        console.error(`Error handling tx ${signature}:`, err);
-        // don't crash — reconciliation cron catches missed events
+        console.error(`❌ Error handling tx ${signature}:`, err);
       }
     },
     "confirmed"
   );
 
-  await new Promise(() => {});
+  console.log(`✅ Listener active — waiting for transactions...`);
+  await new Promise(() => { });
 }
 
 // ─── Reconnect with Exponential Backoff ───────────────────────────────────────

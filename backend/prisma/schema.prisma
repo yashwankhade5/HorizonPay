@@ -70,18 +70,35 @@ model PaymentIntent {
 
 model Transaction {
   id          String   @id @default(uuid())
-  merchantId  String   @map("merchant_id")
-  txSignature String   @unique @map("tx_signature")
-  amount      BigInt
-  userPubkey  String   @map("user_pubkey")
-  orderId     String   @map("order_id")
-  createdAt   DateTime @default(now()) @map("created_at")
- paymentIntentId   String   @unique   
-  merchant Merchant @relation(fields: [merchantId], references: [id])
 
-  @@index([merchantId, createdAt], map: "transactions_merchant_id_created_at_idx")
+  // allow non-payment tx
+  merchantId  String?  @map("merchant_id")
+
+  txSignature String   @unique @map("tx_signature")
+
+  // default 0 for tx without event
+  amount      BigInt   @default(0)
+
+  // allow unknown wallet
+  userPubkey  String   @default("unknown") @map("user_pubkey")
+
+  // allow unknown order
+  orderId     String   @default("unknown") @map("order_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+
+  // no payment intent for random tx
+  paymentIntentId String? @unique
+
+
+  merchant Merchant? @relation(fields: [merchantId],references: [id])
+
+
+  @@index([merchantId, createdAt],map: "transactions_merchant_id_created_at_idx")
   @@map("transactions")
 }
+
 
 model Recurring {
   id                   String   @id @default(uuid())
