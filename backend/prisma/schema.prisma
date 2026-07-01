@@ -15,6 +15,19 @@ datasource db {
    
 }
 
+enum TransactionEvent {
+  MERCHANT_ONBOARDING
+  PAYMENT
+  WITHDRAW
+  RECURRING_SETUP
+  RECURRING_PAYMENT
+  RECURRING_STOPPED
+  ESCROW_ADVANCED
+  VAULT_FROZEN
+  VAULT_UNFROZEN
+  UNKNOWN
+}
+
 model MerchantAccount {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -75,6 +88,8 @@ model Transaction {
   merchantId  String?  @map("merchant_id")
 
   txSignature String   @unique @map("tx_signature")
+
+  eventType   TransactionEvent @default(UNKNOWN) @map("event_type")
 
   // default 0 for tx without event
   amount      BigInt   @default(0)

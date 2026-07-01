@@ -14,6 +14,7 @@ import { buildActivateTransaction,deriveAdminPDA,sendSignedTransaction } from ".
 import { confirmMerchantActivationTx } from "../routes/helper/confirmtx";
 
 import { loginmerchant, verifyJWT,signupmerchantprofile,AuthRequest } from "../middleware/auth";
+import { success } from "zod";
 const router = Router();
 
 
@@ -23,7 +24,39 @@ const router = Router();
  * Create merchant account
  */
 router.post("/signup",signupmerchantprofile);
+
+
+
 router.post("/login",loginmerchant);
+
+
+
+router.post("/create-merchant",verifyJWT, async (req: AuthRequest, res: Response)=> {
+  const {walletPubkey}=req.body
+  if (req.userId == undefined) {
+    return res .json({
+      success:false,
+      message:"no userID"
+    })
+  }
+const userId = req.userId
+  
+  const merchantinfo = await createMerchant({walletPubkey,},userId)
+
+
+  res.status(200).json({
+message:{
+ 
+    walletPubkey: merchantinfo.walletPubkey,
+    secretKey:merchantinfo.secretKey,
+    publishableKey:merchantinfo.publishableKey,
+    webhookSecret:merchantinfo.webhookSecret,
+
+},
+success:true
+  })
+
+});
 
 
 
@@ -75,14 +108,14 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
       const signature = await sendSignedTransaction(signedTx);
 
    
- console.log("fire confirmtx")
+
       // 3️⃣ fire async confirmation
       // confirmMerchantActivationTx({
       //   signature,
       //   walletPubkey,
       //   accountId: req.userId!,
       // });
-      console.log("accountID----------------",req.userId)
+
 
       // 4️⃣ immediate response
       return res.json({

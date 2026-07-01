@@ -19,6 +19,7 @@ interface PaymentReceived {
   timestamp: bigint;
 }
 
+
 interface WithdrawExecuted {
   merchant: PublicKey;
   amount: bigint;
@@ -234,7 +235,9 @@ async function handleEscrowAdvanced(
 
 
 async function storeRawTransaction(
-  signature: string
+  signature: string,
+
+  
 ) {
   try {
 
@@ -249,6 +252,7 @@ async function storeRawTransaction(
         txSignature: signature,
 
         merchantId: null,
+        
 
         amount: BigInt(0),
 
@@ -274,6 +278,13 @@ async function storeRawTransaction(
     );
 
   }
+}
+
+// --------------------merchantonboard--------------------------
+async function handlemerchnatonboard(signature:string,event:any) {
+
+
+  
 }
 
 
@@ -329,7 +340,8 @@ async function startListener() {
 
         // ALWAYS STORE TX
         await storeRawTransaction(
-          signature
+          signature,
+        
         );
 
 
