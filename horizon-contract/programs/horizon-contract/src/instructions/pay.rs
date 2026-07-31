@@ -18,8 +18,7 @@ pub struct Pay<'info> {
     #[account(mut)]
     pub merchant_pda: Account<'info, MerchantPda>,
 
-    #[account(
-        mut,
+    #[account(mut,
        constraint = admin_pda.key() == merchant_pda.admin_pda @ HorizonErrorCode::Unauthorized
     )]
     pub admin_pda: Account<'info, AdminPda>,

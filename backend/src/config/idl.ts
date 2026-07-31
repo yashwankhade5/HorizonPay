@@ -574,6 +574,19 @@ export const idl ={
       ]
     },
     {
+      "name": "MerchantOnboarded",
+      "discriminator": [
+        216,
+        97,
+        54,
+        161,
+        73,
+        101,
+        167,
+        45
+      ]
+    },
+    {
       "name": "PaymentReceived",
       "discriminator": [
         238,
@@ -587,6 +600,45 @@ export const idl ={
       ]
     },
     {
+      "name": "RecurringPulled",
+      "discriminator": [
+        175,
+        143,
+        93,
+        172,
+        220,
+        127,
+        21,
+        194
+      ]
+    },
+    {
+      "name": "RecurringSetup",
+      "discriminator": [
+        109,
+        244,
+        255,
+        97,
+        101,
+        204,
+        69,
+        250
+      ]
+    },
+    {
+      "name": "RecurringStopped",
+      "discriminator": [
+        233,
+        123,
+        49,
+        117,
+        39,
+        240,
+        27,
+        91
+      ]
+    },
+    {
       "name": "VaultFrozen",
       "discriminator": [
         13,
@@ -597,6 +649,19 @@ export const idl ={
         10,
         151,
         247
+      ]
+    },
+    {
+      "name": "VaultUnfrozen",
+      "discriminator": [
+        128,
+        194,
+        79,
+        155,
+        85,
+        31,
+        226,
+        170
       ]
     },
     {
@@ -831,6 +896,22 @@ export const idl ={
       }
     },
     {
+      "name": "MerchantOnboarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "MerchantPda",
       "type": {
         "kind": "struct",
@@ -924,6 +1005,74 @@ export const idl ={
       }
     },
     {
+      "name": "RecurringPulled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "next_payment_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecurringSetup",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "next_payment_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecurringStopped",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "stopped_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultFrozen",
       "type": {
         "kind": "struct",
@@ -939,6 +1088,26 @@ export const idl ={
           {
             "name": "expires_at",
             "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultUnfrozen",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "unfrozen_by",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",

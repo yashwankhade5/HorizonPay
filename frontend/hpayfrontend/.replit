@@ -1,0 +1,46 @@
+modules = ["nodejs-24"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/horizon-pay: web"
+
+[[workflows.workflow]]
+name = "artifacts/horizon-pay: web"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=25310 BASE_PATH=/ pnpm --filter @workspace/horizon-pay run dev"
+waitForPort = 25310
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+VITE_API_BASE_URL = "https://horizonpay-yash-dev-820.loca.lt"

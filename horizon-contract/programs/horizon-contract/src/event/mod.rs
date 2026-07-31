@@ -41,3 +41,38 @@ pub struct EscrowAdvanced {
     pub new_withdrawable: u64,
     pub timestamp: i64,
 }
+#[event]
+pub struct VaultUnfrozen {
+    pub merchant: Pubkey,
+    pub unfrozen_by: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct RecurringSetup {
+    pub user: Pubkey,
+    pub merchant: Pubkey,
+    pub amount: u64,
+    pub next_payment_at: i64,
+}
+
+#[event]
+pub struct RecurringPulled {
+    pub user: Pubkey,
+    pub merchant: Pubkey,
+    pub amount: u64,
+    pub next_payment_at: i64,
+}
+
+#[event]
+pub struct RecurringStopped {
+    pub user: Pubkey,
+    pub merchant: Pubkey,
+    pub stopped_at: i64,
+}
+
+#[event]
+pub struct MerchantOnboarded {
+    pub merchantpda: Pubkey,
+    pub timestamp: i64,
+}

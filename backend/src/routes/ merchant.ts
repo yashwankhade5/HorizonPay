@@ -7,14 +7,17 @@ import type { Request, Response } from "express";
 import {
   createMerchant,
   getMerchantById,
+  getMerchantTransactions,
   rotateApiKey,
   rotateWebhookSecret,
 } from "../services/merchant.service";
-import { buildActivateTransaction,deriveAdminPDA,sendSignedTransaction } from "../services/solana.service";
+import { buildActivateTransaction,deriveAdminPDA,getMerchantPDAandVaultState,getMerchantState,sendSignedTransaction } from "../services/solana.service";
 import { confirmMerchantActivationTx } from "../routes/helper/confirmtx";
 
 import { loginmerchant, verifyJWT,signupmerchantprofile,AuthRequest } from "../middleware/auth";
 import { success } from "zod";
+import { TransactionEvent } from "../generated/prisma/enums";
+import { program } from "@coral-xyz/anchor/dist/cjs/native/system";
 const router = Router();
 
 
@@ -42,7 +45,7 @@ router.post("/create-merchant",verifyJWT, async (req: AuthRequest, res: Response
 const userId = req.userId
   
   const merchantinfo = await createMerchant({walletPubkey,},userId)
-
+console.log("-----------------------here merchant should created ")
 
   res.status(200).json({
 message:{
@@ -82,7 +85,7 @@ router.post("/build-activate-tx",verifyJWT,async (req: AuthRequest, res: Respons
     });
 
     return res.json({
-      tx: result.tx,
+      unsignedtx: result.tx,
       merchantPda: result.merchantPda,
       merchantVault: result.merchantVault,
     });
@@ -103,18 +106,10 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
           error: "signedTx and walletPubkey required",
         });
       }
- console.log("send tx")
+
       // 1️⃣ submit tx
       const signature = await sendSignedTransaction(signedTx);
 
-   
-
-      // 3️⃣ fire async confirmation
-      // confirmMerchantActivationTx({
-      //   signature,
-      //   walletPubkey,
-      //   accountId: req.userId!,
-      // });
 
 
       // 4️⃣ immediate response
@@ -164,6 +159,9 @@ router.get("/profile",verifyJWT,async (req: AuthRequest, res: Response)=> {
         });
       }
 
+      const merchnatTXs = await getMerchantTransactions(merchantId,0,10,TransactionEvent.PAYMENT)
+
+const merchnatState = await getMerchantPDAandVaultState(merchant.merchantPda)
 
       return res.status(200).json({
         success: true,
@@ -174,7 +172,11 @@ router.get("/profile",verifyJWT,async (req: AuthRequest, res: Response)=> {
           merchantpublishablehash:merchant.publishableKeyId+merchant.publishableKeyHash
 
 
-        }
+        },
+
+        MerchantState:merchnatState,
+        Transactions:merchnatTXs
+        
       });
 
 
@@ -205,5 +207,64 @@ router.get("/profile",verifyJWT,async (req: AuthRequest, res: Response)=> {
  * Update merchant webhook URL
  */
 // router.post("/webhook", rotateWebhookSecret);
+
+router.get("/transactions",verifyJWT,async (req: AuthRequest, res: Response)=> { 
+  
+  
+   try {
+
+      // validate auth payload
+      const merchantId = req.userId;
+
+      if (!merchantId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: missing user identity"
+        });
+      }
+
+
+      // fetch merchant
+      const merchant = await getMerchantById(
+        merchantId
+      );
+
+
+      if (!merchant) {
+        return res.status(404).json({
+          success: false,
+          message: "Merchant not found"
+        });
+      }
+
+      const merchnatTXs = await getMerchantTransactions(merchantId,0,10,TransactionEvent.PAYMENT)
+
+
+
+      return res.status(200).json({
+        success: true,
+        Transactions:merchnatTXs
+        
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "GET /profile error:",
+        error
+      );
+
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  
+  });
+
+
+
 
 export default router;

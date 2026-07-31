@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "HorizonPay"
+version = "1.0.0"
+id = "artifacts/horizon-pay"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25310
+
+[services.development]
+run = "pnpm --filter @workspace/horizon-pay run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/horizon-pay", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/horizon-pay/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25310"
+BASE_PATH = "/"

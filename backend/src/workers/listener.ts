@@ -3,6 +3,7 @@ import { env } from "../config/env";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { BorshCoder, EventParser, Idl } from "@coral-xyz/anchor";
 import { prisma } from "../config/prisma";
+import { TransactionEvent } from "../generated/prisma/enums";
 import { idl as IDL } from "../config/idl";
 
 
@@ -16,6 +17,10 @@ interface PaymentReceived {
   user: PublicKey;
   amount: bigint;
   fee: bigint;
+  timestamp: bigint;
+}
+interface MerchantOnBoard {
+  merchantpda: PublicKey,
   timestamp: bigint;
 }
 
@@ -51,7 +56,8 @@ interface EscrowAdvanced {
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 async function handlePaymentReceived(
   event: PaymentReceived,
-  signature: string
+  signature: string,
+
 ) {
   console.log(`⚡ PaymentReceived: ${signature}`);
   console.log(`   merchant: ${event.merchant.toString()}`);
@@ -68,6 +74,7 @@ async function handlePaymentReceived(
   }
 
   console.log(`   merchantId in DB: ${merchant.id}`);
+  const amount = BigInt(event.amount.toString());
 
   // ── find payment intent ──────────────────────────────────────────────────
   // check both "pending" and "submitted" — submit endpoint may not have
@@ -75,7 +82,7 @@ async function handlePaymentReceived(
   const paymentIntent = await prisma.paymentIntent.findFirst({
     where: {
       merchantId: merchant.id,
-      amount: event.amount,
+      amount,
       status: { in: ["pending", "submitted"] },
     },
   });
@@ -88,13 +95,14 @@ async function handlePaymentReceived(
   }
 
   // ── write atomically ─────────────────────────────────────────────────────
-  await prisma.$transaction(async (tx) => {
+  const paymentsrec = await prisma.$transaction(async (tx) => {
     // 1. insert transaction — upsert guards against duplicate processing
     const transaction = await tx.transaction.upsert({
       where: { txSignature: signature },
       update: {
         merchantId: merchant.id,
-        amount: event.amount,
+        amount,
+        eventType: TransactionEvent.PAYMENT,
         userPubkey: event.user.toString(),
         orderId: paymentIntent?.orderId ?? "unknown",
         paymentIntentId: paymentIntent?.id ?? null,
@@ -102,7 +110,7 @@ async function handlePaymentReceived(
       create: {
         merchantId: merchant.id,
         txSignature: signature,
-        amount: event.amount,
+        amount,
         userPubkey: event.user.toString(),
         orderId: paymentIntent?.orderId ?? "unknown",
         paymentIntentId: paymentIntent?.id ?? "unknown",
@@ -232,12 +240,30 @@ async function handleEscrowAdvanced(
     `✅ EscrowAdvanced: merchant=${event.merchant.toString()} slotsAdvanced=${event.slotsAdvanced} released=${event.amountReleased} newWithdrawable=${event.newWithdrawable} sig=${signature}`
   );
 }
+async function handleMerchnatOnBoard(
+  signature: string,
+  event: MerchantOnBoard
+) {
+
+
+
+  const transaction = await prisma.transaction.update({
+    where: { txSignature: signature },
+    data: {
+      eventType: TransactionEvent.MERCHANT_ONBOARDING,
+      merchantId: event.merchantpda.toString()
+    }
+  })
+
+
+
+}
 
 
 async function storeRawTransaction(
   signature: string,
 
-  
+
 ) {
   try {
 
@@ -252,7 +278,7 @@ async function storeRawTransaction(
         txSignature: signature,
 
         merchantId: null,
-        
+
 
         amount: BigInt(0),
 
@@ -279,14 +305,6 @@ async function storeRawTransaction(
 
   }
 }
-
-// --------------------merchantonboard--------------------------
-async function handlemerchnatonboard(signature:string,event:any) {
-
-
-  
-}
-
 
 
 // ─── Core Listener ────────────────────────────────────────────────────────────
@@ -341,7 +359,7 @@ async function startListener() {
         // ALWAYS STORE TX
         await storeRawTransaction(
           signature,
-        
+
         );
 
 
@@ -362,7 +380,7 @@ async function startListener() {
             case "PaymentReceived":
               await handlePaymentReceived(
                 event.data as PaymentReceived,
-                signature
+                signature,
               );
               break;
 
@@ -391,6 +409,12 @@ async function startListener() {
               await handleEscrowAdvanced(
                 event.data as EscrowAdvanced,
                 signature
+              );
+              break;
+            case "MerchantOnboarded":
+              await handleMerchnatOnBoard(
+                signature,
+                event.data as MerchantOnBoard
               );
               break;
 

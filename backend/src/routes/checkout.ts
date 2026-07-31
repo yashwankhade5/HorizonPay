@@ -42,7 +42,7 @@ const sessionId = req.params.sessionId as string;
 const PaymentIntent = await getPaymentIntentById(sessionId)
 
   res.json({
-    "unsignedtx":PaymentIntent.unsignedTx
+    "unsignedTx":PaymentIntent.unsignedTx
   })
 })
 

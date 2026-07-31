@@ -580,6 +580,19 @@ export type HorizonContract = {
       ]
     },
     {
+      "name": "merchantOnboarded",
+      "discriminator": [
+        216,
+        97,
+        54,
+        161,
+        73,
+        101,
+        167,
+        45
+      ]
+    },
+    {
       "name": "paymentReceived",
       "discriminator": [
         238,
@@ -593,6 +606,45 @@ export type HorizonContract = {
       ]
     },
     {
+      "name": "recurringPulled",
+      "discriminator": [
+        175,
+        143,
+        93,
+        172,
+        220,
+        127,
+        21,
+        194
+      ]
+    },
+    {
+      "name": "recurringSetup",
+      "discriminator": [
+        109,
+        244,
+        255,
+        97,
+        101,
+        204,
+        69,
+        250
+      ]
+    },
+    {
+      "name": "recurringStopped",
+      "discriminator": [
+        233,
+        123,
+        49,
+        117,
+        39,
+        240,
+        27,
+        91
+      ]
+    },
+    {
       "name": "vaultFrozen",
       "discriminator": [
         13,
@@ -603,6 +655,19 @@ export type HorizonContract = {
         10,
         151,
         247
+      ]
+    },
+    {
+      "name": "vaultUnfrozen",
+      "discriminator": [
+        128,
+        194,
+        79,
+        155,
+        85,
+        31,
+        226,
+        170
       ]
     },
     {
@@ -837,6 +902,22 @@ export type HorizonContract = {
       }
     },
     {
+      "name": "merchantOnboarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "merchantPda",
       "type": {
         "kind": "struct",
@@ -930,6 +1011,74 @@ export type HorizonContract = {
       }
     },
     {
+      "name": "recurringPulled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "nextPaymentAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "recurringSetup",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "nextPaymentAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "recurringStopped",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "stoppedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "vaultFrozen",
       "type": {
         "kind": "struct",
@@ -945,6 +1094,26 @@ export type HorizonContract = {
           {
             "name": "expiresAt",
             "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "vaultUnfrozen",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "unfrozenBy",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",

@@ -45,7 +45,7 @@ export async function handlePaymentReceived(
   // 1. Find transaction
   // -------------------------------------------------------------------------
   const tx = await prisma.transaction.findUnique({
-    where: { signature },
+    where: { txSignature:signature },
     include: {
       paymentIntent: {
         include: {

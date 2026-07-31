@@ -6,6 +6,7 @@ import { string } from "zod";
 import dotenv from "dotenv";
 import { deriveAdminPDA, deriveMerchantPDA,deriveMerchantVaultPDA } from "../services/solana.service";
 import { PublicKey } from "@solana/web3.js";
+import { TransactionEvent } from "../generated/prisma/enums";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -138,8 +139,8 @@ if (existing) {
   // -----------------------------------------------------------------------
   // Persist
   // -----------------------------------------------------------------------
-
-  const merchant = await prisma.merchant.create({
+ const merchant = await prisma.$transaction(async (tx) => {
+   const merchant = await prisma.merchant.create({
      data: {
     walletPubkey: input.walletPubkey,
 
@@ -158,13 +159,30 @@ if (existing) {
   },
   });
 
-  return {
+    await prisma.merchantAccount.update({
+    where: { id:accountId },
+    data:{
+      activated:true
+    }
+  });
+return merchant
+
+  })
+  if (merchant != undefined) {
+    return {
     id: merchant.id,
     walletPubkey: merchant.walletPubkey,
     secretKey,
     publishableKey,
     webhookSecret,
-  };
+  };  
+  }
+
+ else {
+  
+  throw Object.assign(new Error("merchnat unable to activate please try again"), {
+      statusCode: 404,
+    });}
 }
 
 /**
@@ -239,4 +257,49 @@ export async function rotateWebhookSecret(
   });
 
   return { webhookSecret: secret };
+}
+
+
+/**
+ * Get TX of merchant
+ */
+/**
+ * Fetch transactions for a merchant filtered by event type
+ *
+ * - Defaults to "payment_received" events
+ * - Returns most recent first
+ */
+export async function getMerchantTransactions(
+  merchantId: string,
+  start: number,
+  end: number,
+  eventType: string = TransactionEvent.PAYMENT
+) {
+  if (start < 0 || end <= start) {
+    throw Object.assign(new Error("Invalid range: end must be greater than start"), {
+      statusCode: 400,
+    });
+  }
+
+  const take = end - start;
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      merchantId,
+      eventType: TransactionEvent.PAYMENT,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    skip: start,
+    take,
+  });
+
+  // if (!transactions || transactions.length === 0) {
+  //   throw Object.assign(new Error("No transactions found for this merchant"), {
+  //     statusCode: 404,
+  //   });
+  // }
+
+  return transactions;
 }

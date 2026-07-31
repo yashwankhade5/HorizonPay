@@ -350,3 +350,13 @@ export async function buildActivateTransaction(params: {
     merchantVault: merchantVault.toBase58(),
   };
 }
+
+
+export async function getMerchantPDAandVaultState(
+ merchantpda:string
+) {
+ const merchantpdakey = new PublicKey(merchantpda)
+
+const merchantstate= await program.account.merchantPda.fetch(merchantpdakey);
+return merchantstate
+}

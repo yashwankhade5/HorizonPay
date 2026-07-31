@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use  crate::event::MerchantOnboarded;
 
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
@@ -34,6 +35,7 @@ pub struct CreateMerchant<'info> {
 
 impl<'info> CreateMerchant<'info> {
     pub fn create_merchant(&mut self, bumps: CreateMerchantBumps) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp;
         self.merchant_pda.set_inner(MerchantPda {
             admin_pda: self.admin.key(),
             merchant: self.signer.key(),
@@ -50,7 +52,10 @@ impl<'info> CreateMerchant<'info> {
             current_date: 0,
         });
 
-        
+        emit!( MerchantOnboarded{
+            merchantpda:self.merchant_pda.key(),
+            timestamp:now
+        });
         Ok(())
     }
 }
