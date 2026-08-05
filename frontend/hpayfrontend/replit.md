@@ -1,57 +1,56 @@
 # HorizonPay
 
-A crypto payment infrastructure platform for merchants — accept USDC/USDT across Ethereum, Polygon, and Solana. Includes a landing page, sign-in/sign-up flows, and a merchant dashboard.
+A merchant dashboard for managing USDC payments on Solana. Built with React + Vite.
 
-## Run & Operate
+## Project Structure
 
-- **Frontend (dev):** workflow `artifacts/horizon-pay: web` — runs on port 25310
-- **API server (dev):** workflow `artifacts/api-server: API Server` — runs on port 8080
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string (not yet configured)
+This is a standalone Vite React project (no monorepo/workspace).
 
-## Stack
+```
+/
+├── src/                    # React source code
+│   ├── components/         # UI components (shadcn/ui + custom)
+│   ├── hooks/              # React hooks (useMerchantProfile, etc.)
+│   ├── lib/
+│   │   ├── api.ts          # API client — calls /backend-proxy → real backend
+│   │   └── auth.ts         # JWT auth helpers (localStorage)
+│   ├── pages/              # Page components (Dashboard, SignIn, etc.)
+│   └── main.tsx            # App entry point
+├── public/                 # Static assets
+├── index.html
+├── vite.config.ts          # Vite config with /backend-proxy dev proxy
+├── package.json
+└── tsconfig.json
+```
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- **Frontend:** React + Vite, Tailwind CSS, shadcn/ui, Wouter, TanStack Query, Framer Motion, Recharts
-- **API:** Express 5
-- **DB:** PostgreSQL + Drizzle ORM (schema is empty — no tables defined yet)
-- **Validation:** Zod (`zod/v4`), `drizzle-zod`
-- **API codegen:** Orval (from OpenAPI spec at `lib/api-spec/openapi.yaml`)
-- **Build:** esbuild (CJS bundle)
+## Backend Communication
 
-## Where things live
+The frontend calls the real backend **directly** through Vite's built-in dev proxy:
 
-- `artifacts/horizon-pay/src/pages/` — LandingPage, SignIn, SignUp, Dashboard
-- `artifacts/horizon-pay/src/components/` — landing page sections (Hero, Navbar, etc.) + shadcn/ui components
-- `artifacts/api-server/src/routes/` — Express routes (health check only for now)
-- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for API contracts)
-- `lib/db/src/schema/` — Drizzle table definitions (empty placeholder)
-- `lib/api-client-react/src/generated/` — Orval-generated React Query hooks
-- `lib/api-zod/src/generated/` — Orval-generated Zod schemas
+- All API calls use `API_BASE = "/backend-proxy"` (see `src/lib/api.ts`)
+- Vite proxies `/backend-proxy/*` → `VITE_API_BASE_URL` (the ngrok backend), stripping the prefix
+- This avoids CORS without needing a separate Express server
 
-## Architecture decisions
+To point to a different backend, update `VITE_API_BASE_URL` in `.replit` → `[userenv.shared]`.
 
-- OpenAPI-first: `lib/api-spec/openapi.yaml` is the single source of truth; never write fetch calls by hand — run codegen instead.
-- Frontend routes via Wouter with `BASE_URL` prefix (from `import.meta.env.BASE_URL`).
-- Vite config requires `PORT` and `BASE_PATH` env vars — the managed artifact workflow injects these automatically.
+## Running
 
-## Product
+```bash
+PORT=25310 pnpm run dev
+```
 
-HorizonPay is a crypto payments gateway for merchants. Core screens: landing page (marketing), sign-in/sign-up (auth), and a dashboard (overview with volume chart, balance stats, and transaction table).
+## Tech Stack
 
-## User preferences
+- **React 19** + **TypeScript**
+- **Vite 7** (dev server + bundler)
+- **Tailwind CSS v4**
+- **shadcn/ui** (Radix UI primitives)
+- **TanStack React Query** (data fetching)
+- **Wouter** (client-side routing)
+- **Framer Motion** (animations)
+- **@solana/web3.js** (blockchain interaction)
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+## User Preferences
 
-## Gotchas
-
-- `DATABASE_URL` must be set before running anything that touches the DB or starting the API server in earnest.
-- Run `pnpm --filter @workspace/db run push` after any schema change — Drizzle doesn't auto-migrate.
-- Always run codegen (`pnpm --filter @workspace/api-spec run codegen`) after editing `lib/api-spec/openapi.yaml` before touching frontend API calls.
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- Simple standalone Vite project — no pnpm workspace or monorepo
+- Frontend communicates directly with backend via Vite proxy (no intermediate Express server)

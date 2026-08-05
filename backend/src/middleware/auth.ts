@@ -45,7 +45,9 @@ export async function signupmerchantprofile(
       },
     });
   const token = jwt.sign(
-      { userId: user.id },
+      { userId: user.id,
+activated:user.activated
+       },
       process.env.JWT_SECRET!, // must be 32+ chars
       { expiresIn: "7d" }
     );
@@ -93,7 +95,9 @@ export async function loginmerchant(
 
     // 4. Create JWT
     const token = jwt.sign(
-      { userId: user.id },
+      { userId: user.id,
+        activated:user.activated
+       },
       process.env.JWT_SECRET!, // must be 32+ chars
       { expiresIn: "7d" }
     );
@@ -112,6 +116,7 @@ export async function loginmerchant(
 
 export interface AuthRequest extends Request {
   userId?: string;
+  activated?:boolean;
   email?: string;
 }
 
@@ -131,11 +136,12 @@ export const verifyJWT = (req: AuthRequest, res: Response, next: NextFunction) =
     }
 
     // Decode token
-    const decoded = jwt.verify(token, secret) as { userId: string; email: string };
+    const decoded = jwt.verify(token, secret) as { userId: string;  activated:boolean;email: string; };
 
     // Attach to req
     req.userId = decoded.userId;
     req.email = decoded.email;
+    req.activated = decoded.activated
 
     return next(); // continue to route handler
 

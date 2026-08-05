@@ -3,7 +3,7 @@
 import { Router, Response, Request } from "express";
 import { submitPayment } from "../services/payment.service";
 import { verifyJWT } from "../middleware/auth";
-import { buildWithdrawTransaction, deriveATA } from "../services/solana.service";
+import { buildWithdrawTransaction, deriveATA, sendSignedTransaction } from "../services/solana.service";
 import { env } from "../config/env";
 
 const router = Router();
@@ -40,13 +40,13 @@ router.post("/submit", async (req: Request, res: Response) => {
 
 
 router.post("/withdraw", verifyJWT, async (req: Request, res: Response) => {
-    let body = req.body
+    let {signedtx} = req.body
     try {
-        const result = await submitPayment(body)
+        const result = await sendSignedTransaction(signedtx)
 
         res.status(200).json({
             success: true,
-            txHash: result.signature,
+            txsignature: result,
             message: "amount withdrawal txs submitted"
         })
     } catch (error: any) {

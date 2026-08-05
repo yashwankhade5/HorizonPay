@@ -78,7 +78,8 @@ export async function txValidator(params: {
     mint,
     tokenProgram,
   ] = ix.keys;
-
+console.log("user pubkey:",user.pubkey)
+console.log("userata pubkey:",userAta.pubkey)
   // 6. Signer
   assert(user.isSigner, "User must sign");
 

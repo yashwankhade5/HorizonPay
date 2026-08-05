@@ -11,10 +11,10 @@ import {
   rotateApiKey,
   rotateWebhookSecret,
 } from "../services/merchant.service";
-import { buildActivateTransaction,deriveAdminPDA,getMerchantPDAandVaultState,getMerchantState,sendSignedTransaction } from "../services/solana.service";
+import { buildActivateTransaction, deriveAdminPDA, getMerchantPDAandVaultState, getMerchantState, sendSignedTransaction } from "../services/solana.service";
 import { confirmMerchantActivationTx } from "../routes/helper/confirmtx";
-
-import { loginmerchant, verifyJWT,signupmerchantprofile,AuthRequest } from "../middleware/auth";
+import jwt from "jsonwebtoken";
+import { loginmerchant, verifyJWT, signupmerchantprofile, AuthRequest } from "../middleware/auth";
 import { success } from "zod";
 import { TransactionEvent } from "../generated/prisma/enums";
 import { program } from "@coral-xyz/anchor/dist/cjs/native/system";
@@ -26,55 +26,69 @@ const router = Router();
  * POST /merchant
  * Create merchant account
  */
-router.post("/signup",signupmerchantprofile);
+router.post("/signup", signupmerchantprofile);
 
 
 
-router.post("/login",loginmerchant);
+router.post("/login", loginmerchant);
 
 
 
-router.post("/create-merchant",verifyJWT, async (req: AuthRequest, res: Response)=> {
-  const {walletPubkey}=req.body
+router.post("/create-merchant", verifyJWT, async (req: AuthRequest, res: Response) => {
+  const { walletPubkey } = req.body
   if (req.userId == undefined) {
-    return res .json({
-      success:false,
-      message:"no userID"
+    return res.json({
+      success: false,
+      message: "no userID"
     })
   }
-const userId = req.userId
-  
-  const merchantinfo = await createMerchant({walletPubkey,},userId)
-console.log("-----------------------here merchant should created ")
+  else if (req.activated == false) {
+    return res.json({
+      success: false,
+      message: "user not activated"
+    })
+  }
+  const userId = req.userId
+
+  const merchantinfo = await createMerchant({ walletPubkey, }, userId)
+   // 4. Create JWT
+    const token = jwt.sign(
+      { userId: userId,
+        activated:true
+       },
+      process.env.JWT_SECRET!, // must be 32+ chars
+      { expiresIn: "7d" }
+    );
 
   res.status(200).json({
-message:{
- 
-    walletPubkey: merchantinfo.walletPubkey,
-    secretKey:merchantinfo.secretKey,
-    publishableKey:merchantinfo.publishableKey,
-    webhookSecret:merchantinfo.webhookSecret,
+    message: {
 
-},
-success:true
+      walletPubkey: merchantinfo.walletPubkey,
+      secretKey: merchantinfo.secretKey,
+      publishableKey: merchantinfo.publishableKey,
+      webhookSecret: merchantinfo.webhookSecret,
+
+    },
+    token:token,
+    success: true
   })
 
 });
 
 
 
-router.post("/build-activate-tx",verifyJWT,async (req: AuthRequest, res: Response)=> {
+router.post("/build-activate-tx", verifyJWT, async (req: AuthRequest, res: Response) => {
   try {
-    const {walletPubkey}  = req.body;
+    const { walletPubkey } = req.body;
 
     if (!walletPubkey) {
-       return res.status(400).json({ error: "walletPubkey required" });
+      return res.status(400).json({ error: "walletPubkey required" });
     }
     try {
-  new PublicKey(walletPubkey);
-} catch {
-  return res.status(400).json({ error: "Invalid walletPubkey" });
-}
+      new PublicKey(walletPubkey);
+    } catch {
+      return res.status(400).json({ error: "Invalid walletPubkey" });
+    }
 
     const adminPubkey = env.ADMIN_PUBLICKEY;
     const mint = env.MINT_ADDRESS;
@@ -95,34 +109,34 @@ router.post("/build-activate-tx",verifyJWT,async (req: AuthRequest, res: Respons
 });
 
 
-router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
+router.post("/activate", verifyJWT, async (req: AuthRequest, res: Response) => {
 
-      try {
-        console.log(req.body)
-      const { signedTx, walletPubkey } = req.body;
+  try {
+    console.log(req.body)
+    const { signedTx, walletPubkey } = req.body;
 
-      if (!signedTx || !walletPubkey) {
-        return res.status(400).json({
-          error: "signedTx and walletPubkey required",
-        });
-      }
-
-      // 1️⃣ submit tx
-      const signature = await sendSignedTransaction(signedTx);
-
-
-
-      // 4️⃣ immediate response
-      return res.json({
-        status: "submitted",
-        signature,
-      });
-    } catch (err: any) {
-      return res.status(500).json({
-        error: err.message
+    if (!signedTx || !walletPubkey) {
+      return res.status(400).json({
+        error: "signedTx and walletPubkey required",
       });
     }
+
+    // 1️⃣ submit tx
+    const signature = await sendSignedTransaction(signedTx);
+
+
+
+    // 4️⃣ immediate response
+    return res.json({
+      status: "submitted",
+      signature,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message
+    });
   }
+}
 )
 
 
@@ -130,71 +144,72 @@ router.post("/activate",verifyJWT,async (req: AuthRequest, res: Response)=> {
  * GET /merchant/profile
  * Get current merchant profile
  */
-router.get("/profile",verifyJWT,async (req: AuthRequest, res: Response)=> { 
-  
-  
-   try {
-
-      // validate auth payload
-      const merchantId = req.userId;
-
-      if (!merchantId) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized: missing user identity"
-        });
-      }
+router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
 
 
-      // fetch merchant
-      const merchant = await getMerchantById(
-        merchantId
-      );
+  try {
 
+    // validate auth payload
+    const merchantId = req.userId;
 
-      if (!merchant) {
-        return res.status(404).json({
-          success: false,
-          message: "Merchant not found"
-        });
-      }
-
-      const merchnatTXs = await getMerchantTransactions(merchantId,0,10,TransactionEvent.PAYMENT)
-
-const merchnatState = await getMerchantPDAandVaultState(merchant.merchantPda)
-
-      return res.status(200).json({
-        success: true,
-        data: { merchantwallet:merchant.walletPubkey,
-          merchantpda:merchant.merchantPda,
-          merchantvault:merchant.merchantVault,
-          merchantsecretkeyhash:merchant.secretKeyId+merchant.secretKeyHash,
-          merchantpublishablehash:merchant.publishableKeyId+merchant.publishableKeyHash
-
-
-        },
-
-        MerchantState:merchnatState,
-        Transactions:merchnatTXs
-        
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "GET /profile error:",
-        error
-      );
-
-
-      return res.status(500).json({
+    if (!merchantId) {
+      return res.status(401).json({
         success: false,
-        message: "Internal server error"
+        message: "Unauthorized: missing user identity"
       });
     }
-  
-  });
+
+
+    // fetch merchant
+    const merchant = await getMerchantById(
+      merchantId
+    );
+
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: "Merchant not found"
+      });
+    }
+
+    const merchnatTXs = await getMerchantTransactions(merchantId, 0, 10, TransactionEvent.PAYMENT)
+
+    const merchnatState = await getMerchantPDAandVaultState(merchant.merchantPda)
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        merchantwallet: merchant.walletPubkey,
+        merchantpda: merchant.merchantPda,
+        merchantvault: merchant.merchantVault,
+        merchantsecretkeyhash: merchant.secretKeyId + merchant.secretKeyHash,
+        merchantpublishablehash: merchant.publishableKeyId + merchant.publishableKeyHash
+
+
+      },
+
+      MerchantState: merchnatState,
+      Transactions: merchnatTXs
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "GET /profile error:",
+      error
+    );
+
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+
+});
 
 /**
  * POST /merchant/rotate-keys
@@ -208,61 +223,61 @@ const merchnatState = await getMerchantPDAandVaultState(merchant.merchantPda)
  */
 // router.post("/webhook", rotateWebhookSecret);
 
-router.get("/transactions",verifyJWT,async (req: AuthRequest, res: Response)=> { 
-  
-  
-   try {
-
-      // validate auth payload
-      const merchantId = req.userId;
-
-      if (!merchantId) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized: missing user identity"
-        });
-      }
+router.get("/transactions", verifyJWT, async (req: AuthRequest, res: Response) => {
 
 
-      // fetch merchant
-      const merchant = await getMerchantById(
-        merchantId
-      );
+  try {
 
+    // validate auth payload
+    const merchantId = req.userId;
 
-      if (!merchant) {
-        return res.status(404).json({
-          success: false,
-          message: "Merchant not found"
-        });
-      }
-
-      const merchnatTXs = await getMerchantTransactions(merchantId,0,10,TransactionEvent.PAYMENT)
-
-
-
-      return res.status(200).json({
-        success: true,
-        Transactions:merchnatTXs
-        
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "GET /profile error:",
-        error
-      );
-
-
-      return res.status(500).json({
+    if (!merchantId) {
+      return res.status(401).json({
         success: false,
-        message: "Internal server error"
+        message: "Unauthorized: missing user identity"
       });
     }
-  
-  });
+
+
+    // fetch merchant
+    const merchant = await getMerchantById(
+      merchantId
+    );
+
+
+    if (!merchant) {
+      return res.status(404).json({
+        success: false,
+        message: "Merchant not found"
+      });
+    }
+
+    const merchnatTXs = await getMerchantTransactions(merchantId, 0, 10, TransactionEvent.PAYMENT)
+
+
+
+    return res.status(200).json({
+      success: true,
+      Transactions: merchnatTXs
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "GET /profile error:",
+      error
+    );
+
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+
+});
 
 
 

@@ -170,7 +170,7 @@ async function main() {
     mint,
     ata.address,
     signer,
-    1_000_000_000 // 1000 tokens
+    1_000_000_000_000 // 1000 tokens
   );
 
   console.log("Minted test tokens");

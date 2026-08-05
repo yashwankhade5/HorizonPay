@@ -142,7 +142,7 @@ async function handlePaymentReceived(
             timestamp: event.timestamp.toString(),
           },
           delivered: false,
-          attempts: 0,
+          attempts: 3,
         },
       });
       console.log(`   ✅ Webhook enqueued`);

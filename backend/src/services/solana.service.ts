@@ -215,7 +215,7 @@ export async function sendSignedTransaction(
     tx.serialize()
   );
 
-  const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+ 
 
 
   return signature;
