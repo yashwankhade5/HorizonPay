@@ -281,14 +281,14 @@ export default function Activate() {
         signedTransaction.serialize()
       ).toString('base64');
 
-      await apiFetch('/merchant/activate', {
+     const res= await apiFetch('/merchant/activate', {
         method: 'POST',
         body: JSON.stringify({
           signedTx: signedTxBase64,
           walletPubkey: publicKey,
         }),
       });
-
+console.log(res,"response:")
       // ── Step 4: Create merchant record & refresh token ───────────────────────
       try {
         const createRes = await apiFetch<{ token?: string }>('/merchant/create-merchant', {

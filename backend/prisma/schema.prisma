@@ -49,7 +49,7 @@ model Merchant {
   publishableKeyId    String          @unique @map("publishable_key_id")
   publishableKeyHash  String          @map("publishable_key_hash")
   webhookUrl          String?         @map("webhook_url")
-  webhookSecretHash   String?         @map("webhook_secret_hash")
+  webhookSecretEncrypt   String?         @map("webhook_secret_hash")
   createdAt           DateTime        @default(now()) @map("created_at")
 
   account         MerchantAccount  @relation(fields: [accountId], references: [id])
@@ -132,17 +132,22 @@ model Recurring {
   @@map("recurring")
 }
 
+
+
 model WebhookLog {
-  id          String    @id @default(uuid())
-  merchantId  String    @map("merchant_id")
-  eventType   String    @map("event_type")
-  payload     Json
-  delivered   Boolean   @default(false)
-  attempts    Int       @default(0)
-  lastAttempt DateTime? @map("last_attempt")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id            String    @id @default(uuid())
+  merchantId    String    @map("merchant_id")
+  eventType     String    @map("event_type")
+  payload       Json
+  delivered     Boolean   @default(false)
+  attempts      Int       @default(0)
+  lastAttempt   DateTime? @map("last_attempt")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
 
+  @@index([delivered, nextAttemptAt], map: "webhook_log_pending_idx")
   @@map("webhook_log")
 }

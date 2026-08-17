@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import { deriveAdminPDA, deriveMerchantPDA,deriveMerchantVaultPDA } from "../services/solana.service";
 import { PublicKey } from "@solana/web3.js";
 import { TransactionEvent } from "../generated/prisma/enums";
+import { encryptWebhookSecret } from "../utils/decrypt";
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,13 +66,6 @@ function hashSecret(secret: string): string {
     .digest("hex");
 }
 
-/**
- * Webhook secret (bcrypt — per spec)
- */
-async function hashWebhookSecret(secret: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(secret, saltRounds);
-}
 
 // ---------------------------------------------------------------------------
 // Service
@@ -111,6 +106,7 @@ if (existing) {
   const secretKeySecret = generateSecret();
   const publishableKeySecret = generateSecret();
 
+
   const secretKey = buildApiKey("sk", secretKeyId, secretKeySecret);
   const publishableKey = buildApiKey("pk", publishableKeyId, publishableKeySecret);
   console.log("-----------------------------------------------------------------------------------------")
@@ -131,10 +127,11 @@ if (existing) {
   let webhookSecret: string | undefined;
   let webhookSecretHash: string | undefined;
 
-  if (input.webhookUrl) {
+
     webhookSecret = generateSecret();
-    webhookSecretHash = await hashWebhookSecret(webhookSecret);
-  }
+    webhookSecretHash = await encryptWebhookSecret(webhookSecret);
+      console.log("webhookkey : ",webhookSecret)
+
 
   // -----------------------------------------------------------------------
   // Persist
@@ -155,7 +152,7 @@ if (existing) {
     publishableKeyHash,
 
     webhookUrl: input.webhookUrl,
-    webhookSecretHash,
+    webhookSecretEncrypt:webhookSecretHash,
   },
   });
 
@@ -247,12 +244,12 @@ export async function rotateWebhookSecret(
   merchantId: string
 ): Promise<{ webhookSecret: string }> {
   const secret = generateSecret();
-  const hash = await hashWebhookSecret(secret);
+  const hash = await encryptWebhookSecret(secret);
 
   await prisma.merchant.update({
     where: { id: merchantId },
     data: {
-      webhookSecretHash: hash,
+      webhookSecretEncrypt: hash,
     },
   });
 
@@ -281,19 +278,25 @@ export async function getMerchantTransactions(
     });
   }
 
+console.log("mecrhant:",merchantId)
   const take = end - start;
 
   const transactions = await prisma.transaction.findMany({
     where: {
-      merchantId,
+      merchantId:merchantId,
+      
       eventType: TransactionEvent.PAYMENT,
     },
     orderBy: {
       createdAt: "desc",
+
     },
-    skip: start,
-    take,
+    // skip: start,
+    // take,
   });
+
+
+
 
   // if (!transactions || transactions.length === 0) {
   //   throw Object.assign(new Error("No transactions found for this merchant"), {
@@ -301,5 +304,11 @@ export async function getMerchantTransactions(
   //   });
   // }
 
-  return transactions;
+  
+return transactions.map(tx => ({
+  ...tx,
+  amount: tx.amount.toString(),
+}));
+
+  // return transactions;
 }

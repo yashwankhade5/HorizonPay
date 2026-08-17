@@ -33,6 +33,7 @@ const envSchema = z.object({
   MINT_ADDRESS: z.string().min(1),
   ADMIN_FEE_VAULT: z.string().min(1),
  ADMIN_PUBLICKEY:z.string().min(1),
+ WEBHOOK_ENCRYPTION_KEY:z.string()
 });
 
 const parsed = envSchema.safeParse(process.env);

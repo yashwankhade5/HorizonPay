@@ -55,15 +55,15 @@ export default function Dashboard() {
   // Each bucket represents one day; currentIndex is today's bucket
   const chartData = state
     ? state.withheldBuckets.map((bucket, i) => {
-        const bucketValue = toUsdc(parseHexAmount(bucket));
-        const dayOffset = i - state.currentIndex;
-        const d = new Date();
-        d.setDate(d.getDate() + dayOffset);
-        return {
-          date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          value: bucketValue,
-        };
-      })
+      const bucketValue = toUsdc(parseHexAmount(bucket));
+      const dayOffset = i - state.currentIndex;
+      const d = new Date();
+      d.setDate(d.getDate() + dayOffset);
+      return {
+        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        value: bucketValue,
+      };
+    })
     : [];
 
   function fmt(n: number | null) {
@@ -333,11 +333,10 @@ export default function Dashboard() {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                        activeTab === tab
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeTab === tab
                           ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                           : "text-muted-foreground hover:text-foreground border border-transparent"
-                      }`}
+                        }`}
                     >
                       {tab}
                     </button>
@@ -451,25 +450,26 @@ export default function Dashboard() {
                       </tr>
                     ) : (
                       txs.slice(0, 5).map((tx, i) => {
-                        const status = (tx.status as string) ?? "Unknown";
+                        // const status = (tx.status as string) ?? "Unknown";
+                        const status = "Confirmed";
                         const statusColor =
                           status === "Confirmed" || status === "Success"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : status === "Pending"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            : "bg-red-500/10 text-red-400 border border-red-500/20";
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              : "bg-red-500/10 text-red-400 border border-red-500/20";
                         const dotColor =
                           status === "Confirmed" || status === "Success"
                             ? "bg-emerald-500"
                             : status === "Pending"
-                            ? "bg-amber-500"
-                            : "bg-red-500";
+                              ? "bg-amber-500"
+                              : "bg-red-500";
                         const rawAmt =
                           typeof tx.amount === "string"
-                            ? toUsdc(parseHexAmount(tx.amount))
+                            ? toUsdc(Number(BigInt(tx.amount)))
                             : typeof tx.amount === "number"
-                            ? tx.amount
-                            : 0;
+                              ? tx.amount
+                              : 0;
                         return (
                           <tr
                             key={i}
@@ -485,10 +485,12 @@ export default function Dashboard() {
                               {rawAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="py-4 px-2 font-mono text-xs text-muted-foreground">
-                              {tx.customerWallet ? shortWallet(String(tx.customerWallet)) : "—"}
+                              {tx.userPubkey ? shortWallet(String(tx.userPubkey)) : "—"}
                             </td>
                             <td className="py-4 px-2 text-muted-foreground text-xs">
-                              {tx.date ?? "—"}
+                              {tx.createdAt
+                                ? new Date(tx.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                                : "—"}
                             </td>
                             <td className="py-4 px-2 text-right font-mono text-xs text-muted-foreground">
                               {tx.txSignature ? shortWallet(String(tx.txSignature)) : "—"}

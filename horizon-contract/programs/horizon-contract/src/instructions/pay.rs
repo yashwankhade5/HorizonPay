@@ -130,7 +130,7 @@ impl<'info> Pay<'info> {
     emit!(PaymentReceived {
         merchant: self.merchant_pda.merchant,
         user: self.user.key(),
-        amount,
+        amount:net_amount,
         fee: platform_fee,
         timestamp: now,
     });

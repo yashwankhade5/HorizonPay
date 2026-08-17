@@ -34,9 +34,9 @@ interface EventLog {
 }
 
 const statusStyles: Record<LogStatus, string> = {
-  "200 OK":      "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  "200 OK": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   "201 Created": "bg-sky-500/10 text-sky-400 border-sky-500/20",
-  "500 Error":   "bg-red-500/10 text-red-400 border-red-500/20",
+  "500 Error": "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
 const PAYLOAD = `{
@@ -107,11 +107,10 @@ function SidebarLink({ href, icon: Icon, label, active }: { href: string; icon: 
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-sm ${
-        active
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-sm ${active
           ? "bg-primary/10 text-primary border border-primary/20"
           : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-      }`}
+        }`}
     >
       <Icon className="w-4 h-4" />{label}
     </Link>
@@ -147,13 +146,13 @@ export default function Webhooks() {
         </div>
 
         <nav className="flex-1 px-3 space-y-1 mt-4">
-          <SidebarLink href="/dashboard"    icon={LayoutDashboard} label="Overview" />
-          <SidebarLink href="/transactions" icon={ArrowLeftRight}  label="Transactions" />
-          <SidebarLink href="/withdraw"     icon={Banknote}        label="Withdraw" />
-          <SidebarLink href="/api-keys"     icon={Key}             label="API Keys" />
-          <SidebarLink href="/webhooks"     icon={Webhook}         label="Webhooks" active />
-          <SidebarLink href="#"             icon={RefreshCw}       label="Subscriptions" />
-          <SidebarLink href="/settings"     icon={Settings}        label="Settings" />
+          <SidebarLink href="/dashboard" icon={LayoutDashboard} label="Overview" />
+          <SidebarLink href="/transactions" icon={ArrowLeftRight} label="Transactions" />
+          <SidebarLink href="/withdraw" icon={Banknote} label="Withdraw" />
+          <SidebarLink href="/api-keys" icon={Key} label="API Keys" />
+          <SidebarLink href="/webhooks" icon={Webhook} label="Webhooks" active />
+          <SidebarLink href="#" icon={RefreshCw} label="Subscriptions" />
+          <SidebarLink href="/settings" icon={Settings} label="Settings" />
         </nav>
 
         <div className="p-4 mt-auto border-t border-white/5 space-y-3">
@@ -271,11 +270,10 @@ export default function Webhooks() {
                     <button
                       key={f}
                       onClick={() => setLogFilter(f)}
-                      className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-all ${
-                        logFilter === f
+                      className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-all ${logFilter === f
                           ? "bg-white/10 text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       {f === "all" ? "All" : "Failed"}
                     </button>
@@ -298,9 +296,8 @@ export default function Webhooks() {
                     {/* Row */}
                     <div
                       onClick={() => log.payload && setExpandedLog(expandedLog === log.id ? null : log.id)}
-                      className={`grid grid-cols-[100px_1fr_1fr_120px] gap-4 px-6 py-3.5 items-center transition-colors ${
-                        log.payload ? "cursor-pointer hover:bg-white/[0.02]" : ""
-                      } ${expandedLog === log.id ? "bg-white/[0.02]" : ""}`}
+                      className={`grid grid-cols-[100px_1fr_1fr_120px] gap-4 px-6 py-3.5 items-center transition-colors ${log.payload ? "cursor-pointer hover:bg-white/[0.02]" : ""
+                        } ${expandedLog === log.id ? "bg-white/[0.02]" : ""}`}
                     >
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium border w-fit ${statusStyles[log.status]}`}>
                         {log.status}

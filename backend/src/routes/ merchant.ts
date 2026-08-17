@@ -42,11 +42,11 @@ router.post("/create-merchant", verifyJWT, async (req: AuthRequest, res: Respons
       message: "no userID"
     })
   }
-  else if (req.activated == false) {
-    return res.json({
-      success: false,
-      message: "user not activated"
-    })
+  else if (req.activated = false) {
+    // return res.json({
+    //   success: false,
+    //   message: "user not activated"
+    // })
   }
   const userId = req.userId
 
@@ -112,7 +112,7 @@ router.post("/build-activate-tx", verifyJWT, async (req: AuthRequest, res: Respo
 router.post("/activate", verifyJWT, async (req: AuthRequest, res: Response) => {
 
   try {
-    console.log(req.body)
+   
     const { signedTx, walletPubkey } = req.body;
 
     if (!signedTx || !walletPubkey) {
@@ -149,6 +149,7 @@ router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
 
   try {
 
+  
     // validate auth payload
     const merchantId = req.userId;
 
@@ -173,7 +174,7 @@ router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const merchnatTXs = await getMerchantTransactions(merchantId, 0, 10, TransactionEvent.PAYMENT)
+    const merchnatTXs = await getMerchantTransactions(merchant.id, 0, 10, TransactionEvent.PAYMENT)
 
     const merchnatState = await getMerchantPDAandVaultState(merchant.merchantPda)
 
@@ -185,6 +186,7 @@ router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
         merchantvault: merchant.merchantVault,
         merchantsecretkeyhash: merchant.secretKeyId + merchant.secretKeyHash,
         merchantpublishablehash: merchant.publishableKeyId + merchant.publishableKeyHash
+     
 
 
       },
@@ -252,7 +254,8 @@ router.get("/transactions", verifyJWT, async (req: AuthRequest, res: Response) =
       });
     }
 
-    const merchnatTXs = await getMerchantTransactions(merchantId, 0, 10, TransactionEvent.PAYMENT)
+
+    const merchnatTXs = await getMerchantTransactions(merchant.id, 0, 10, TransactionEvent.PAYMENT)
 
 
 
@@ -273,7 +276,8 @@ router.get("/transactions", verifyJWT, async (req: AuthRequest, res: Response) =
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
+      
     });
   }
 

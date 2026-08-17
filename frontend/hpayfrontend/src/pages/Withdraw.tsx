@@ -23,8 +23,27 @@ import {
 import { motion } from "framer-motion";
 import { useMerchantProfile } from "@/hooks/useMerchantProfile";
 import { parseHexAmount, toUsdc, shortWallet, apiFetch, API_BASE } from "@/lib/api";
+import { useSolanaWallet, type DetectedWallet } from '@/hooks/use-solana-wallet';
+import { Transaction } from "@solana/web3.js";
+
+
+
+interface BuildWithdrawTxResponse {
+  success: Boolean,
+  unsignedWithdrawTx: string;
+}
+interface WithdrawTxResponse {
+  success: Boolean,
+  txsignature: string,
+  message: string
+}
+
+
+
+
 
 export default function Withdraw() {
+  const { connected, publicKey, detectedWallets, connect, disconnect, signTransaction } = useSolanaWallet();
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawResult, setWithdrawResult] = useState<"success" | "error" | null>(null);
 
@@ -39,19 +58,19 @@ export default function Withdraw() {
   // Build escrow bucket display from withheldBuckets (7-day rolling window)
   const escrowBuckets = state
     ? state.withheldBuckets
-        .map((bucket, i) => {
-          const value = toUsdc(parseHexAmount(bucket));
-          const daysAway = ((i - state.currentIndex + 7) % 7) + 1;
-          const d = new Date();
-          d.setDate(d.getDate() + daysAway);
-          const label =
-            daysAway === 1
-              ? "Releasing Tomorrow"
-              : `Releasing in ${daysAway}d`;
-          return { label, timeLabel: `${daysAway}d`, amount: value, daysAway };
-        })
-        .filter((b) => b.amount > 0)
-        .sort((a, b) => a.daysAway - b.daysAway)
+      .map((bucket, i) => {
+        const value = toUsdc(parseHexAmount(bucket));
+        const daysAway = ((i - state.currentIndex + 7) % 7) + 1;
+        const d = new Date();
+        d.setDate(d.getDate() + daysAway);
+        const label =
+          daysAway === 1
+            ? "Releasing Tomorrow"
+            : `Releasing in ${daysAway}d`;
+        return { label, timeLabel: `${daysAway}d`, amount: value, daysAway };
+      })
+      .filter((b) => b.amount > 0)
+      .sort((a, b) => a.daysAway - b.daysAway)
     : [];
 
   // Total escrowed to calculate progress bars
@@ -63,14 +82,38 @@ export default function Withdraw() {
   }
 
   async function handleWithdraw() {
+
+    if (!merchantWallet || withdrawable === null) return;
     if (!merchantWallet) return;
     setIsWithdrawing(true);
     setWithdrawResult(null);
     try {
-      await apiFetch(`/merchant/build-activate-tx`, {
+      console.log("here")
+      const BuildRes = await apiFetch<BuildWithdrawTxResponse>(`/payment/build-withdraw-tx`, {
         method: "POST",
-        body: JSON.stringify({ wallet: merchantWallet }),
+        body: JSON.stringify({
+          walletPubkey: merchantWallet.toString(),
+          amount: Math.round(withdrawable * 1_000_000).toString()
+        }),
       });
+
+      const txBytes = Buffer.from(BuildRes.unsignedWithdrawTx, "base64")
+      const transaction = Transaction.from(txBytes)
+      const signedtx = await signTransaction(transaction);
+
+      const serializedTxBase64 = Buffer.from(signedtx.serialize()).toString('base64')
+
+      const withdrawResponse = await apiFetch<WithdrawTxResponse>(`/payment/withdraw`, {
+        method: "POST",
+        body: JSON.stringify({
+          signedtx: serializedTxBase64
+
+        }),
+      });
+      if (!withdrawResponse.success) {
+        setWithdrawResult("error");
+      }
+
       setWithdrawResult("success");
     } catch (_) {
       setWithdrawResult("error");

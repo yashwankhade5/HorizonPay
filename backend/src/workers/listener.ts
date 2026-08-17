@@ -5,7 +5,7 @@ import { BorshCoder, EventParser, Idl } from "@coral-xyz/anchor";
 import { prisma } from "../config/prisma";
 import { TransactionEvent } from "../generated/prisma/enums";
 import { idl as IDL } from "../config/idl";
-
+import { startWebhookDispatcher } from "./webhook-dispatcher";
 
 const PROGRAM_ID = new PublicKey(env.PROGRAM_ID!);
 const RPC_HTTP = env.SOLANA_RPC_URL!;
@@ -463,3 +463,4 @@ process.on("SIGTERM", async () => {
 });
 
 startWithRetry().catch(console.error);
+startWebhookDispatcher();

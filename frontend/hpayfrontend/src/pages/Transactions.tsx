@@ -65,7 +65,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 function txAmount(tx: MerchantTransaction): number {
   if (typeof tx.amount === "number") return tx.amount;
-  if (typeof tx.amount === "string") return toUsdc(parseHexAmount(tx.amount));
+  if (typeof tx.amount === "string") return toUsdc(Number(BigInt(tx.amount)));
   return 0;
 }
 
@@ -74,6 +74,7 @@ export default function Transactions() {
   const [selected, setSelected] = useState<MerchantTransaction | null>(null);
 
   const { data, isLoading, isError } = useMerchantProfile();
+  console.log("txs:", data?.Transactions)
   const txs = data?.Transactions ?? [];
 
   const filtered = txs.filter((t) => {
@@ -81,7 +82,7 @@ export default function Transactions() {
     const q = search.toLowerCase();
     return (
       String(t.txSignature ?? "").toLowerCase().includes(q) ||
-      String(t.customerWallet ?? "").toLowerCase().includes(q) ||
+      String(t.userPubkey ?? "").toLowerCase().includes(q) ||
       String(t.txHash ?? "").toLowerCase().includes(q)
     );
   });
@@ -252,7 +253,8 @@ export default function Transactions() {
                       </tr>
                     ) : (
                       filtered.map((tx, i) => {
-                        const status = String(tx.status ?? "Unknown");
+                        // const status = String(tx.status ?? "Unknown");
+                        const status = "Confirmed";
                         const amt = txAmount(tx);
                         return (
                           <motion.tr
@@ -261,15 +263,14 @@ export default function Transactions() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.25, delay: i * 0.04 }}
                             onClick={() => setSelected(selected === tx ? null : tx)}
-                            className={`border-b border-white/5 last:border-0 cursor-pointer transition-colors ${
-                              selected === tx ? "bg-primary/5" : "hover:bg-white/[0.02]"
-                            }`}
+                            className={`border-b border-white/5 last:border-0 cursor-pointer transition-colors ${selected === tx ? "bg-primary/5" : "hover:bg-white/[0.02]"
+                              }`}
                           >
                             <td className="px-5 py-4 font-mono text-xs text-foreground">
                               {tx.txSignature ? shortWallet(String(tx.txSignature)) : "—"}
                             </td>
                             <td className="px-5 py-4 font-mono text-xs text-muted-foreground">
-                              {tx.customerWallet ? shortWallet(String(tx.customerWallet)) : "—"}
+                              {tx.userPubkey ? shortWallet(String(tx.userPubkey)) : "—"}
                             </td>
                             <td className="px-5 py-4 font-medium text-foreground">
                               {amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -280,7 +281,9 @@ export default function Transactions() {
                               </span>
                             </td>
                             <td className="px-5 py-4 text-xs text-muted-foreground">
-                              {tx.date ?? "—"}
+                              {tx.createdAt
+                                ? new Date(tx.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                                : "—"}
                             </td>
                           </motion.tr>
                         );
@@ -356,8 +359,8 @@ export default function Transactions() {
                         {selected.txSignature && (
                           <CopyField label="Tx Signature" value={String(selected.txSignature)} />
                         )}
-                        {selected.customerWallet && (
-                          <CopyField label="Customer Wallet" value={String(selected.customerWallet)} />
+                        {selected.userPubkey && (
+                          <CopyField label="Customer Wallet" value={String(selected.userPubkey)} />
                         )}
                         {selected.txHash && (
                           <CopyField label="Transaction Hash" value={String(selected.txHash)} />

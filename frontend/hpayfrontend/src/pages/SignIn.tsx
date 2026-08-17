@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { saveToken } from "@/lib/auth";
+const API_BASE = "http://localhost:3000"
 
 export default function SignIn() {
   const [, setLocation] = useLocation();
@@ -11,6 +12,33 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [isFocused, setIsFocused] = useState<string | null>(null);
 
+  async function handleSubmit(e: React.FormEvent) {
+      e.preventDefault();
+
+
+        const res = await fetch(`${API_BASE}/merchant/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // bypass loca.lt tunnel interstitial
+            "bypass-tunnel-reminder": "true",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+  
+        const data = await res.json();
+        console.log("token received")
+  
+        if (data.token) {
+          saveToken(data.token);
+          setLocation("/dashboard");
+           console.log("token saved ")
+          return;
+        }
+  
+      
+  
+    }
   
 
   return (
@@ -80,7 +108,7 @@ export default function SignIn() {
             </p>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -171,11 +199,8 @@ export default function SignIn() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                type="button"
-                onClick={() => {
-                
+                type="submit"
               
-                  setLocation('/dashboard')}}
                 className="w-full h-11 bg-primary hover:bg-primary/90 text-background font-semibold rounded-lg shadow-[0_0_24px_rgba(0,229,255,0.25)] transition-all"
               >
                 Sign In

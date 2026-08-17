@@ -11,11 +11,11 @@ export interface MerchantProfileData {
 
 export interface MerchantTransaction {
   txSignature?: string;
-  customerWallet?: string;
+   userPubkey?: string;
   amount?: string | number;
   fee?: string | number;
   status?: string;
-  date?: string;
+  createdAt?: string;
   network?: string;
   networkFee?: string;
   confirmations?: number;
@@ -56,3 +56,4 @@ export function useMerchantProfile() {
     retry: 2,
   });
 }
+
