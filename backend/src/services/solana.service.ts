@@ -119,11 +119,13 @@ export async function deriveATA(
  */
 
 export async function buildPaymentTransaction(params: {
+  paymentIntent:string;
   userPubkey: string;
   merchantPubkey: string;
   amount: string;
 }): Promise<string> {
   const {
+    paymentIntent,
     userPubkey,
     merchantPubkey,
     amount,
@@ -138,10 +140,9 @@ export async function buildPaymentTransaction(params: {
   const [merchantPda] = deriveMerchantPDA(merchantPubkey, adminPda.toString());
   const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
 
-  console.log("merchant_pda", merchantPda.toString())
 
   const tx = await program.methods
-    .pay(new BN(amount))
+    .pay(new BN(amount),paymentIntent)
     .accountsPartial({
       user: new PublicKey(userPubkey),
       userAta: userAta,
@@ -185,7 +186,8 @@ export async function validateSignedTransaction(
   );
   const [adminPda] = deriveAdminPDA(expected.adminPubkey);
 const [merchantpda] = await deriveMerchantPDA(expected.merchantPubkey,adminPda.toString())
-console.log(merchantpda.toString())
+ 
+
   await txValidator({
     tx,
     expectedProgramId: program.programId.toBase58(),
@@ -260,10 +262,14 @@ export async function buildWithdrawTransaction(params: {
     amount,
   } = params;
 
+
+  let adminpda = await deriveAdminPDA(adminPubkey)[0].toString()
+
   const [merchantPda] = deriveMerchantPDA(
     merchantPubkey,
-    adminPubkey
+    adminpda
   );
+
 
   const [merchantVault] = deriveMerchantVaultPDA(merchantPda);
 
@@ -306,7 +312,7 @@ export async function buildActivateTransaction(params: {
   merchantVault: string;
 }> {
   let mint = env.MINT_ADDRESS
-  console.log(env.MINT_ADDRESS)
+
   const { merchantPubkey, adminPubkey } = params;
 
   const merchant = new PublicKey(merchantPubkey);
@@ -335,8 +341,7 @@ export async function buildActivateTransaction(params: {
 
   tx.feePayer = merchant;
   tx.recentBlockhash = blockhash;
-  console.log(blockhash)
-  console.log(tx.recentBlockhash)
+
   let serializetx = tx
     .serialize({
       requireAllSignatures: false,

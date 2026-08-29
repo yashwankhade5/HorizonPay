@@ -14,7 +14,14 @@ import Transactions from './pages/Transactions';
 import ApiKeys from './pages/ApiKeys';
 import Webhooks from './pages/Webhooks';
 import SettingsPage from './pages/Settings';
-
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import {
+  WalletModalProvider,
+  WalletDisconnectButton,
+  WalletMultiButton
+} from '@solana/wallet-adapter-react-ui';
+import '@solana/wallet-adapter-react-ui/styles.css';
+import ApiKeysReveal from './pages/Keys';
 const queryClient = new QueryClient();
 
 function Router() {
@@ -30,6 +37,7 @@ function Router() {
       <Route path="/webhooks" component={Webhooks} />
       <Route path="/withdraw" component={Withdraw} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/keys" component={ApiKeysReveal} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -37,14 +45,19 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+
+    <WalletProvider wallets={[]} autoConnect>
+      <WalletModalProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </WalletModalProvider>
+    </WalletProvider>
   );
 }
 

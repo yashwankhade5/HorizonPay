@@ -25,6 +25,8 @@ import { useMerchantProfile } from "@/hooks/useMerchantProfile";
 import { parseHexAmount, toUsdc, shortWallet, apiFetch, API_BASE } from "@/lib/api";
 import { useSolanaWallet, type DetectedWallet } from '@/hooks/use-solana-wallet';
 import { Transaction } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { Header } from "@/components/shared/Header";
 
 
 
@@ -43,11 +45,11 @@ interface WithdrawTxResponse {
 
 
 export default function Withdraw() {
-  const { connected, publicKey, detectedWallets, connect, disconnect, signTransaction } = useSolanaWallet();
+const {signTransaction,connected,publicKey}=useWallet()
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawResult, setWithdrawResult] = useState<"success" | "error" | null>(null);
 
-  const { data, isLoading } = useMerchantProfile();
+  const { data, isLoading,refetch } = useMerchantProfile();
 
   const state = data?.MerchantState;
   const merchantWallet = data?.data?.merchantwallet ?? "";
@@ -83,8 +85,15 @@ export default function Withdraw() {
 
   async function handleWithdraw() {
 
-    if (!merchantWallet || withdrawable === null) return;
-    if (!merchantWallet) return;
+    // if (!merchantWallet || withdrawable === null) return;
+    if (withdrawable === null) return;
+    // if (!merchantWallet) return;
+
+  if (!signTransaction) {
+    setWithdrawResult("error");
+    return; // wallet not connected or doesn't support signTransaction
+  }
+
     setIsWithdrawing(true);
     setWithdrawResult(null);
     try {
@@ -92,7 +101,7 @@ export default function Withdraw() {
       const BuildRes = await apiFetch<BuildWithdrawTxResponse>(`/payment/build-withdraw-tx`, {
         method: "POST",
         body: JSON.stringify({
-          walletPubkey: merchantWallet.toString(),
+          walletPubkey: publicKey?.toString(),
           amount: Math.round(withdrawable * 1_000_000).toString()
         }),
       });
@@ -115,6 +124,7 @@ export default function Withdraw() {
       }
 
       setWithdrawResult("success");
+      setTimeout(() => refetch(), 1500);
     } catch (_) {
       setWithdrawResult("error");
     } finally {
@@ -196,41 +206,8 @@ export default function Withdraw() {
       {/* Main Container */}
       <div className="flex-1 flex flex-col ml-[220px] min-w-0">
         {/* Top Header */}
-        <header className="h-14 bg-card border-b border-white/5 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-6">
-            <nav className="flex gap-4">
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Docs</a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Support</a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Changelog</a>
-            </nav>
-          </div>
-
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 border border-white/10 rounded-full px-3 py-1 bg-white/5">
-            <span className="text-xs text-muted-foreground">Merchant Status:</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-              <span className="text-xs font-medium text-emerald-400">Active</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-xs font-mono text-muted-foreground">
-              {merchantWallet ? shortWallet(merchantWallet) : "—"}
-            </div>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
-              <Bell className="w-4 h-4" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
-              <HelpCircle className="w-4 h-4" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors">
-              <Settings2 className="w-4 h-4" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold shrink-0 ml-1 cursor-pointer">
-              M
-            </div>
-          </div>
-        </header>
+       <Header/>
+       
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -405,7 +382,7 @@ export default function Withdraw() {
                 {/* Result feedback */}
                 {withdrawResult === "success" && (
                   <div className="mb-4 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-medium">
-                    ✓ Withdrawal initiated successfully
+                    ✓ Withdrawed funds successfully
                   </div>
                 )}
                 {withdrawResult === "error" && (

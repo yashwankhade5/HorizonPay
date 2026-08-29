@@ -35,7 +35,7 @@ pub struct Pay<'info> {
 }
 
 impl<'info> Pay<'info> {
-   pub fn pay(&mut self, amount: u64) -> Result<()> {
+   pub fn pay(&mut self, amount: u64,payment_intent:String) -> Result<()> {
     require!(amount > 0, HorizonErrorCode::InvalidAmount);
 
     require!(
@@ -132,6 +132,7 @@ impl<'info> Pay<'info> {
         user: self.user.key(),
         amount:net_amount,
         fee: platform_fee,
+        payment_intent:payment_intent,
         timestamp: now,
     });
 

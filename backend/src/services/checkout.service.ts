@@ -108,12 +108,7 @@ let userPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA"
     // Build unsigned tx before DB write — if tx construction fails, no broken
     // row is persisted. Blockhash here is a placeholder; checkout page refreshes
     // it from RPC immediately before wallet signing.
-    const unsignedTxBase64 = await buildPaymentTransaction({
-      userPubkey: userPubkey,
-      merchantPubkey: input.merchantpubkey,
-      amount: input.amount.toString(),
-
-    });
+ 
 
     try {
       
@@ -126,11 +121,26 @@ let userPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA"
           userPubkey: userPubkey,
           idempotencyKey,
           status: 'pending',
-          unsignedTx: unsignedTxBase64,
+    
           // expires_at defaults to NOW() + INTERVAL '10 minutes' in schema
         },
       });
       
+
+   const unsignedTxBase64 = await buildPaymentTransaction({
+    paymentIntent:paymentIntent.id,
+      userPubkey: userPubkey,
+      merchantPubkey: input.merchantpubkey,
+      amount: input.amount.toString(),
+
+    });
+    const paymentIntentupdate = await prisma.paymentIntent.update({
+      where:{id:paymentIntent.id},
+      data:{
+        unsignedTx:unsignedTxBase64
+      }
+    })
+
     } catch (err: any) {
       // Handle unique constraint race (two concurrent requests for same key)
       if (err.code === 'P2002' && err.meta?.target?.includes('idempotency_key')) {
@@ -142,7 +152,7 @@ let userPubkey = "HVcH9SecFL99oM2n4Zigeadegxiznwb53iz6HXpxeKLA"
       }
     }
   }
-console.log("i am here1")
+
   const baseUrl = process.env.CHECKOUT_BASE_URL ?? 'https://pay.horizonpay.io';
   const checkoutUrl = `${baseUrl}/${paymentIntent.id}`;
 

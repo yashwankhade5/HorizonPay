@@ -13,7 +13,7 @@ import { getToken } from "@/lib/auth";
 
 
 // export const API_BASE = "/api";
-export const API_BASE = "http://localhost:3000";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 /** Standard JSON headers. */
 const BASE_HEADERS: HeadersInit = {

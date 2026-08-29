@@ -1,4 +1,4 @@
-export const idl ={
+export const idl = {
   "address": "k3ep1PK9dkQyzHm5STsP7dg3wK2Y73qxuJB5nStGvyS",
   "metadata": {
     "name": "horizon_contract",
@@ -394,6 +394,10 @@ export const idl ={
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "payment_intent",
+          "type": "string"
         }
       ]
     },
@@ -489,7 +493,11 @@ export const idl ={
               },
               {
                 "kind": "account",
-                "path": "merchant_pda.merchant",
+                "path": "merchant_signer"
+              },
+              {
+                "kind": "account",
+                "path": "merchant_pda.admin_pda",
                 "account": "MerchantPda"
               }
             ]
@@ -901,7 +909,15 @@ export const idl ={
         "kind": "struct",
         "fields": [
           {
-            "name": "merchant",
+            "name": "merchantpda",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchantwalletpubkey",
             "type": "pubkey"
           },
           {
@@ -996,6 +1012,10 @@ export const idl ={
           {
             "name": "fee",
             "type": "u64"
+          },
+          {
+            "name": "payment_intent",
+            "type": "string"
           },
           {
             "name": "timestamp",

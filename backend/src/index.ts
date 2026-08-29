@@ -62,6 +62,7 @@ app.get("/health", (_req, res) => {
 app.use("/checkout", checkoutRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/merchant", merchantRoutes);
+app.use("/webhook", webhookRoutes);
 
 /**
  * 404 fallback

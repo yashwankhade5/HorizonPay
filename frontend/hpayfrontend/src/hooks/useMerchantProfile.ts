@@ -7,6 +7,7 @@ export interface MerchantProfileData {
   merchantvault: string;
   merchantsecretkeyhash: string;
   merchantpublishablehash: string;
+  merchantwebhooksecret:string;
 }
 
 export interface MerchantTransaction {

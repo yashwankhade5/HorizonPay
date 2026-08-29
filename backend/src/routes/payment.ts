@@ -3,7 +3,7 @@
 import { Router, Response, Request } from "express";
 import { submitPayment } from "../services/payment.service";
 import { verifyJWT } from "../middleware/auth";
-import { buildWithdrawTransaction, deriveATA, sendSignedTransaction } from "../services/solana.service";
+import { buildWithdrawTransaction, deriveAdminPDA, deriveATA, sendSignedTransaction } from "../services/solana.service";
 import { env } from "../config/env";
 
 const router = Router();
@@ -60,17 +60,19 @@ router.post("/withdraw", verifyJWT, async (req: Request, res: Response) => {
 });
 
 router.post("/build-withdraw-tx", verifyJWT, async (req: Request, res: Response) => {
-   console.log("here")
+   
 let {walletPubkey,amount}=req.body
- console.log("here")
+
 let mint = env.MINT_ADDRESS
 let adminPubkey = env.ADMIN_PUBLICKEY
-console.log("wallet",walletPubkey,amount,mint)
+
 
 let merchantAta = await deriveATA(walletPubkey,mint)
+
+
     try {
      const withdrawTx =await buildWithdrawTransaction({merchantPubkey:walletPubkey,merchantAta:merchantAta.toString(),adminPubkey,mint,amount})
- console.log("here")
+
         res.status(200).json({
             success: true,
           unsignedWithdrawTx:withdrawTx

@@ -1,7 +1,11 @@
 import { Wallet } from "lucide-react";
 import { Link } from "wouter";
 
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useWallet } from "@solana/wallet-adapter-react";
+
 export function Navbar() {
+  const {publicKey} =useWallet()
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
@@ -30,12 +34,24 @@ export function Navbar() {
           <Link href="/signin" className="hidden md:block text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             Sign In
           </Link>
-          <button className="relative group overflow-hidden rounded-md bg-primary/10 border border-primary/20 px-4 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20 hover:border-primary/40 hover:shadow-[0_0_20px_rgba(0,229,255,0.3)]">
+          {/* <button className="relative group overflow-hidden rounded-md bg-primary/10 border border-primary/20 px-4 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20 hover:border-primary/40 hover:shadow-[0_0_20px_rgba(0,229,255,0.3)]">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4" />
               <span>Connect Wallet</span>
             </div>
-          </button>
+          </button> */}
+         
+<WalletMultiButton>
+  {!publicKey ? (
+    <>
+      <Wallet className="w-4 h-4" />
+      <span className="mx-3">Connect Wallet</span>
+    </>
+  ) : (
+    ""
+  )}
+</WalletMultiButton>
+          
         </div>
       </div>
     </nav>

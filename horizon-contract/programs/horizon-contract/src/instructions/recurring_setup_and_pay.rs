@@ -59,6 +59,7 @@ impl<'info> RecurringSetupAndPay<'info> {
         &mut self,
         amount: u64,
         bumps: &RecurringSetupAndPayBumps,
+        payment_intent:String,
     ) -> Result<()> {
         require!(amount > 0, HorizonErrorCode::InvalidAmount);
         require!(
@@ -144,6 +145,7 @@ impl<'info> RecurringSetupAndPay<'info> {
             user: self.signer.key(),
             amount,
             fee,
+            payment_intent:payment_intent,
             timestamp: now,
         });
 

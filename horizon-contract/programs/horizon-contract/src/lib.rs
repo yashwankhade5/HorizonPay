@@ -14,7 +14,9 @@ declare_id!("k3ep1PK9dkQyzHm5STsP7dg3wK2Y73qxuJB5nStGvyS");
 
 #[program]
 pub mod horizon_contract {
-    use super::*;
+    use std::string;
+
+use super::*;
 
        pub fn create_admin(
         ctx: Context<Admin>,
@@ -41,9 +43,9 @@ pub mod horizon_contract {
         Ok(())
     }
 
-    pub fn pay(ctx: Context<Pay>,amount:u64) -> Result<()> {
+    pub fn pay(ctx: Context<Pay>,amount:u64,payment_intent:String) -> Result<()> {
 
-        ctx.accounts.pay(amount)?;
+        ctx.accounts.pay(amount,payment_intent)?;
         Ok(())
     }
     pub fn withdraw(ctx:Context<Withdraw>,amount:u64)->Result<()>{

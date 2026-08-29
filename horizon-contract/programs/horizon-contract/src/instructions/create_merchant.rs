@@ -52,8 +52,12 @@ impl<'info> CreateMerchant<'info> {
             current_date: 0,
         });
 
+
+        msg!("merchant_walletpubkey:{}",self.signer.key());
         emit!( MerchantOnboarded{
             merchantpda:self.merchant_pda.key(),
+            merchant_vault:self.merchant_vault.key(),
+            merchantwalletpubkey:self.signer.key(),
             timestamp:now
         });
         Ok(())

@@ -16,6 +16,7 @@ import {
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import "dotenv/config";
 
 import fs from "fs";
 import path from "path";
@@ -23,6 +24,11 @@ import path from "path";
 import {idl} from "../config/idl";
 import { HorizonContract } from "../config/horizon_contract_types";
 import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
+import bs58 from "bs58";
+
+const mint_keypair = Keypair.fromSecretKey(
+  bs58.decode(process.env.MINT_KEYPAIR!)
+);
 
 // ------------------------------------------------
 // CONFIG
@@ -108,13 +114,15 @@ async function main() {
   // --------------------------------------------
 
   console.log("\nCreating mint...\n");
+  console.log("MintPubkey:",mint_keypair.publicKey.toBase58());
 
   const mint = await createMint(
     connection,
     signer,
     signer.publicKey,
     null,
-    6 // decimals
+    6, // decimals
+mint_keypair  
   );
 
   console.log("Mint:", mint.toBase58());
@@ -293,7 +301,9 @@ const transaction = new Transaction().add(
 
 console.log("Mint exists:", mintInfo !== null);
 console.log("Mint address:", mint);
-console.log(mintInfo);
+  console.log("\nADMIN_ATA=");
+  console.log(adminAta.address.toBase58());
+
 
 }
 

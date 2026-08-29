@@ -400,6 +400,10 @@ export type HorizonContract = {
         {
           "name": "amount",
           "type": "u64"
+        },
+        {
+          "name": "paymentIntent",
+          "type": "string"
         }
       ]
     },
@@ -495,7 +499,11 @@ export type HorizonContract = {
               },
               {
                 "kind": "account",
-                "path": "merchant_pda.merchant",
+                "path": "merchantSigner"
+              },
+              {
+                "kind": "account",
+                "path": "merchant_pda.admin_pda",
                 "account": "merchantPda"
               }
             ]
@@ -907,7 +915,15 @@ export type HorizonContract = {
         "kind": "struct",
         "fields": [
           {
-            "name": "merchant",
+            "name": "merchantpda",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchantVault",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchantwalletpubkey",
             "type": "pubkey"
           },
           {
@@ -1002,6 +1018,10 @@ export type HorizonContract = {
           {
             "name": "fee",
             "type": "u64"
+          },
+          {
+            "name": "paymentIntent",
+            "type": "string"
           },
           {
             "name": "timestamp",

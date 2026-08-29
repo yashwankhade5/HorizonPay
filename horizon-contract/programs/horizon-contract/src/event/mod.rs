@@ -6,6 +6,7 @@ pub struct PaymentReceived {
     pub user: Pubkey,
     pub amount: u64,
     pub fee: u64,
+    pub payment_intent:String,
     pub timestamp: i64,
 }
 
@@ -74,5 +75,7 @@ pub struct RecurringStopped {
 #[event]
 pub struct MerchantOnboarded {
     pub merchantpda: Pubkey,
+    pub merchant_vault:Pubkey,
+    pub merchantwalletpubkey:Pubkey,
     pub timestamp: i64,
 }

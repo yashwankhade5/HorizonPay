@@ -17,6 +17,11 @@ interface BuildActivateTxResponse {
   merchantPda: string;
   merchantVault: string;
 }
+interface ActivateTxResponse {
+  status: string,
+  signature: string,
+  token: string,
+}
 
 // ─── Radar / concentric-rings visual ─────────────────────────────────────────
 
@@ -49,13 +54,12 @@ function WalletVisual({ connected, step }: { connected: boolean; step: Activatio
           className="relative z-10"
         >
           <div
-            className={`w-14 h-14 rounded-xl flex items-center justify-center border transition-all duration-700 ${
-              isSuccess
+            className={`w-14 h-14 rounded-xl flex items-center justify-center border transition-all duration-700 ${isSuccess
                 ? 'bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_28px_rgba(52,211,153,0.4)]'
                 : connected
-                ? 'bg-primary/20 border-primary/50 shadow-[0_0_28px_rgba(0,229,255,0.4)]'
-                : 'bg-[hsl(220_40%_10%)] border-primary/30 shadow-[0_0_16px_rgba(0,229,255,0.15)]'
-            }`}
+                  ? 'bg-primary/20 border-primary/50 shadow-[0_0_28px_rgba(0,229,255,0.4)]'
+                  : 'bg-[hsl(220_40%_10%)] border-primary/30 shadow-[0_0_16px_rgba(0,229,255,0.15)]'
+              }`}
           >
             {isSuccess ? (
               <CheckCircle2 className="w-6 h-6 text-emerald-400" />
@@ -281,37 +285,39 @@ export default function Activate() {
         signedTransaction.serialize()
       ).toString('base64');
 
-     const res= await apiFetch('/merchant/activate', {
+      const res = await apiFetch<ActivateTxResponse>('/merchant/activate', {
         method: 'POST',
         body: JSON.stringify({
           signedTx: signedTxBase64,
           walletPubkey: publicKey,
         }),
       });
-console.log(res,"response:")
+      console.log(res, "response:")
       // ── Step 4: Create merchant record & refresh token ───────────────────────
-      try {
-        const createRes = await apiFetch<{ token?: string }>('/merchant/create-merchant', {
-          method: 'POST',
-          body: JSON.stringify({
-            walletPubkey: publicKey,
-            merchantPda: buildRes.merchantPda,
-            merchantVault: buildRes.merchantVault,
-          }),
-        });
-        if (createRes.token) {
-          saveToken(createRes.token);
-        }
-      } catch {
-        // Non-fatal: proceed even if token refresh fails
-        
-      }
+      // try {
+      //   const createRes = await apiFetch<{ token?: string }>('/merchant/create-merchant', {
+      //     method: 'POST',
+      //     body: JSON.stringify({
+      //       walletPubkey: publicKey,
+      //       merchantPda: buildRes.merchantPda,
+      //       merchantVault: buildRes.merchantVault,
+      //     }),
+      //   });
+      //   if (createRes.token) {
+      //     saveToken(createRes.token);
+      //   }
+      // } catch {
+      //   // Non-fatal: proceed even if token refresh fails
+      //   setLocation('/signin')
+
+      // }
 
       // ── Step 5: Done ────────────────────────────────────────────────────────
       setStep('success');
+      saveToken(res.token)
 
       // Navigate to dashboard after short delay so user sees success state
-      setTimeout(() => setLocation('/dashboard'), 1800);
+      setTimeout(() => setLocation('/keys'), 1800);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Activation failed. Please try again.';
       setErrorMsg(
@@ -462,11 +468,10 @@ console.log(res,"response:")
                   whileTap={{ scale: isProcessing || isSuccess ? 1 : 0.99 }}
                   onClick={handleActivate}
                   disabled={isProcessing || isSuccess}
-                  className={`w-full h-13 flex items-center justify-center gap-2.5 font-semibold rounded-xl shadow-[0_0_40px_rgba(0,229,255,0.3)] transition-all text-sm disabled:opacity-70 disabled:cursor-not-allowed ${
-                    isSuccess
+                  className={`w-full h-13 flex items-center justify-center gap-2.5 font-semibold rounded-xl shadow-[0_0_40px_rgba(0,229,255,0.3)] transition-all text-sm disabled:opacity-70 disabled:cursor-not-allowed ${isSuccess
                       ? 'bg-emerald-500 text-white'
                       : 'bg-primary hover:bg-primary/90 text-background'
-                  }`}
+                    }`}
                 >
                   {isProcessing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -485,7 +490,7 @@ console.log(res,"response:")
                   exit={{ opacity: 0, y: -4 }}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
-                  onClick={() => setShowModal(true)}
+                  // onClick={() => setShowModal(true)}
                   className="w-full h-13 flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 text-background font-semibold rounded-xl shadow-[0_0_40px_rgba(0,229,255,0.3)] transition-all text-sm"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -521,13 +526,12 @@ console.log(res,"response:")
                     return (
                       <div key={key} className="flex items-center gap-1">
                         <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${
-                            isDone
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${isDone
                               ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                               : isCurrent
-                              ? 'bg-primary/20 border-primary/40 text-primary'
-                              : 'bg-white/5 border-white/10 text-muted-foreground/40'
-                          }`}
+                                ? 'bg-primary/20 border-primary/40 text-primary'
+                                : 'bg-white/5 border-white/10 text-muted-foreground/40'
+                            }`}
                         >
                           {isDone ? '✓' : i + 1}
                         </div>

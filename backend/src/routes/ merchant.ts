@@ -1,23 +1,22 @@
 // backend/src/routes/merchant.ts
 
 import { Router } from "express";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey,Transaction } from "@solana/web3.js";
+
 import { env } from "../config/env";
 import type { Request, Response } from "express";
 import {
   createMerchant,
   getMerchantById,
   getMerchantTransactions,
-  rotateApiKey,
-  rotateWebhookSecret,
 } from "../services/merchant.service";
-import { buildActivateTransaction, deriveAdminPDA, getMerchantPDAandVaultState, getMerchantState, sendSignedTransaction } from "../services/solana.service";
-import { confirmMerchantActivationTx } from "../routes/helper/confirmtx";
+import { buildActivateTransaction,  getMerchantPDAandVaultState,  sendSignedTransaction } from "../services/solana.service";
+
 import jwt from "jsonwebtoken";
 import { loginmerchant, verifyJWT, signupmerchantprofile, AuthRequest } from "../middleware/auth";
-import { success } from "zod";
 import { TransactionEvent } from "../generated/prisma/enums";
-import { program } from "@coral-xyz/anchor/dist/cjs/native/system";
+import { prisma } from "../config/prisma";
+
 const router = Router();
 
 
@@ -51,14 +50,8 @@ router.post("/create-merchant", verifyJWT, async (req: AuthRequest, res: Respons
   const userId = req.userId
 
   const merchantinfo = await createMerchant({ walletPubkey, }, userId)
-   // 4. Create JWT
-    const token = jwt.sign(
-      { userId: userId,
-        activated:true
-       },
-      process.env.JWT_SECRET!, // must be 32+ chars
-      { expiresIn: "7d" }
-    );
+  // 4. Create JWT
+
 
   res.status(200).json({
     message: {
@@ -69,7 +62,7 @@ router.post("/create-merchant", verifyJWT, async (req: AuthRequest, res: Respons
       webhookSecret: merchantinfo.webhookSecret,
 
     },
-    token:token,
+
     success: true
   })
 
@@ -112,24 +105,65 @@ router.post("/build-activate-tx", verifyJWT, async (req: AuthRequest, res: Respo
 router.post("/activate", verifyJWT, async (req: AuthRequest, res: Response) => {
 
   try {
-   
+
     const { signedTx, walletPubkey } = req.body;
 
-    if (!signedTx || !walletPubkey) {
+    const tx = Transaction.from(Buffer.from(signedTx,"base64"))
+
+    const message = tx.compileMessage()
+    const numsigner = message.header.numRequiredSignatures;
+    const signerPubkeys = message.accountKeys.slice(0, numsigner);
+
+  const singleSigner = signerPubkeys[0];
+
+    if (numsigner !=1 ) {
       return res.status(400).json({
-        error: "signedTx and walletPubkey required",
+        error:"only one signer is allowed"
+      })
+    }
+
+ 
+
+    if (!signedTx ) {
+      return res.status(400).json({
+        error: "signedTx  required",
       });
     }
+    
 
     // 1️⃣ submit tx
     const signature = await sendSignedTransaction(signedTx);
+       const user = await prisma.merchantAccount.update({
+      where: { id: req.userId },
+      data:{
+        walletPubkey:singleSigner.toString()
+      }
+    })
+  
 
+     if (!user) {
+      return res.json({
+        status: "user not found ",
+        signature: undefined,
+        token: undefined,
+      })
+    }
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        activated: true,
+        walletPubkey: user.walletPubkey,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
 
 
     // 4️⃣ immediate response
     return res.json({
       status: "submitted",
       signature,
+      token: token
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -149,7 +183,7 @@ router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
 
   try {
 
-  
+
     // validate auth payload
     const merchantId = req.userId;
 
@@ -185,8 +219,9 @@ router.get("/profile", verifyJWT, async (req: AuthRequest, res: Response) => {
         merchantpda: merchant.merchantPda,
         merchantvault: merchant.merchantVault,
         merchantsecretkeyhash: merchant.secretKeyId + merchant.secretKeyHash,
-        merchantpublishablehash: merchant.publishableKeyId + merchant.publishableKeyHash
-     
+        merchantpublishablehash: merchant.publishableKeyId + merchant.publishableKeyHash,
+        merchantwebhooksecret:merchant.webhookSecretEncrypt
+
 
 
       },
@@ -277,11 +312,13 @@ router.get("/transactions", verifyJWT, async (req: AuthRequest, res: Response) =
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      
+
     });
   }
 
 });
+
+
 
 
 

@@ -44,13 +44,15 @@ export async function signupmerchantprofile(
        passwordHash: hashedPassword,
       },
     });
-  const token = jwt.sign(
-      { userId: user.id,
-activated:user.activated
-       },
-      process.env.JWT_SECRET!, // must be 32+ chars
-      { expiresIn: "7d" }
-    );
+const token = jwt.sign(
+  {
+    userId: user.id,
+    activated: user.activated,
+    walletPubkey: user.walletPubkey ?? undefined,
+  },
+  process.env.JWT_SECRET!,
+  { expiresIn: "7d" }
+);
 
     return res.status(201).json({
       message: "User created",
@@ -65,6 +67,8 @@ activated:user.activated
     next(error);
   }
 }
+
+
 export async function loginmerchant(
   req: Request,
   res: Response,
@@ -94,14 +98,15 @@ export async function loginmerchant(
     }
 
     // 4. Create JWT
-    const token = jwt.sign(
-      { userId: user.id,
-        activated:user.activated
-       },
-      process.env.JWT_SECRET!, // must be 32+ chars
-      { expiresIn: "7d" }
-    );
-
+   const token = jwt.sign(
+  {
+    userId: user.id,
+    activated: user.activated,
+    walletPubkey: user.walletPubkey ?? undefined,
+  },
+  process.env.JWT_SECRET!,
+  { expiresIn: "7d" }
+);
     // 5. Send token in response
     return res.json({
       message: "Login successful",
@@ -118,6 +123,8 @@ export interface AuthRequest extends Request {
   userId?: string;
   activated?:boolean;
   email?: string;
+  walletPubkey?: string;
+ 
 }
 
 export const verifyJWT = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -136,12 +143,15 @@ export const verifyJWT = (req: AuthRequest, res: Response, next: NextFunction) =
     }
 
     // Decode token
-    const decoded = jwt.verify(token, secret) as { userId: string;  activated:boolean;email: string; };
+    const decoded = jwt.verify(token, secret) as { userId: string;  activated:boolean; email: string;  walletPubkey?: string;};
 
     // Attach to req
     req.userId = decoded.userId;
     req.email = decoded.email;
-    req.activated = decoded.activated
+    req.activated = decoded.activated;
+    req.walletPubkey = decoded.walletPubkey; // undefined if not set
+    
+    
 
     return next(); // continue to route handler
 

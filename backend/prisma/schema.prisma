@@ -34,6 +34,7 @@ model MerchantAccount {
   passwordHash String    @map("password_hash")
   activated    Boolean   @default(false) @map("activated")
   createdAt    DateTime  @default(now()) @map("created_at")
+  walletPubkey String?   @unique @map("wallet_pubkey")
   merchant     Merchant?
   @@map("merchant_accounts")
 }
@@ -71,7 +72,7 @@ model PaymentIntent {
   userPubkey     String   @map("user_pubkey")
   idempotencyKey String   @unique @map("idempotency_key")
   status         String   @default("pending")  // pending | submitted | confirmed | failed
-  unsignedTx     String   @map("unsigned_tx")  // base64-encoded unsigned transaction
+  unsignedTx     String?   @map("unsigned_tx")  // base64-encoded unsigned transaction
   createdAt      DateTime @default(now()) @map("created_at")
   expiresAt      DateTime @default(dbgenerated("NOW() + INTERVAL '10 minutes'")) @map("expires_at")
 
@@ -142,11 +143,12 @@ model WebhookLog {
   delivered     Boolean   @default(false)
   attempts      Int       @default(0)
   lastAttempt   DateTime? @map("last_attempt")
+  webhookUrl    String?   @map("webhook_url")
   nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
   lastError     String?   @map("last_error")
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  merchant Merchant @relation(fields: [merchantId], references: [id])
+  merchant Merchant @relation(fields: [merchantId], references: [accountId])
 
   @@index([delivered, nextAttemptAt], map: "webhook_log_pending_idx")
   @@map("webhook_log")

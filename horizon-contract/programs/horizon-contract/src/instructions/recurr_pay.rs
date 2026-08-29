@@ -52,7 +52,7 @@ pub struct RecurrPay<'info> {
 }
 
 impl<'info> RecurrPay<'info> {
-    pub fn recurr_pay(&mut self) -> Result<()> {
+    pub fn recurr_pay(&mut self,payment_intent:String) -> Result<()> {
        
 
         let now = Clock::get()?.unix_timestamp;
@@ -130,6 +130,7 @@ impl<'info> RecurrPay<'info> {
             user: self.recurring_pda.subscriber,
             amount,
             fee,
+            payment_intent:payment_intent,
             timestamp: now,
         });
 

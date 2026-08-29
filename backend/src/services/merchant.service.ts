@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import { deriveAdminPDA, deriveMerchantPDA,deriveMerchantVaultPDA } from "../services/solana.service";
 import { PublicKey } from "@solana/web3.js";
 import { TransactionEvent } from "../generated/prisma/enums";
+
+
 import { encryptWebhookSecret } from "../utils/decrypt";
 
 
@@ -278,7 +280,7 @@ export async function getMerchantTransactions(
     });
   }
 
-console.log("mecrhant:",merchantId)
+
   const take = end - start;
 
   const transactions = await prisma.transaction.findMany({
@@ -312,3 +314,19 @@ return transactions.map(tx => ({
 
   // return transactions;
 }
+
+// export async function getMerchantWebhook(
+//   merchantId: string,
+// ){
+
+// const webhooklogs = await prisma.webhookLog.findMany({
+//   where:{
+//     merchantId:merchantId
+//   }
+// })
+
+// return webhooklogs
+
+
+// }
+

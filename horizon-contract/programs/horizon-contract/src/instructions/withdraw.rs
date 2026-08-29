@@ -16,7 +16,7 @@ pub struct Withdraw<'info> {
 
     #[account(
         mut,
-        seeds = [b"merchant", merchant_pda.merchant.as_ref()],
+        seeds = [b"merchant", merchant_signer.key().as_ref(),merchant_pda.admin_pda.key().as_ref()],
         bump = merchant_pda.bump,
         constraint = merchant_pda.merchant == merchant_signer.key()
     )]
@@ -82,6 +82,7 @@ impl<'info> Withdraw<'info> {
         let seeds = &[
             b"merchant",
             self.merchant_pda.merchant.as_ref(),
+            self.merchant_pda.admin_pda.as_ref(),
             &[self.merchant_pda.bump],
         ];
 

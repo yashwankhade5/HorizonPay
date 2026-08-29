@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 const BATCH_SIZE = 20;
 const MAX_ATTEMPTS = 8;
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 3000;
 
 interface ClaimedRow {
   id: string;
@@ -30,6 +30,8 @@ async function processRow(tx: any, row: ClaimedRow) {
   const payloadStr = JSON.stringify(row.payload);
   const rawSecret = decryptWebhookSecret(row.webhook_secret_hash);
   const signature = signPayload(rawSecret, payloadStr);
+
+
 
   try {
     const res = await fetch(row.webhook_url, {
@@ -67,13 +69,14 @@ async function processRow(tx: any, row: ClaimedRow) {
 
 async function tick() {
   try {
+
     await prisma.$transaction(
       async (tx) => {
         const rows = await tx.$queryRaw<ClaimedRow[]>`
           SELECT wl.id, wl.merchant_id, wl.event_type, wl.payload, wl.attempts,
                  m.webhook_url, m.webhook_secret_hash
           FROM webhook_log wl
-          JOIN merchants m ON m.id = wl.merchant_id
+          JOIN merchants m ON m.account_id = wl.merchant_id
           WHERE wl.delivered = FALSE
             AND wl.attempts < ${MAX_ATTEMPTS}
             AND wl.next_attempt_at <= NOW()
@@ -84,6 +87,7 @@ async function tick() {
         `;
 
         for (const row of rows) {
+    
           await processRow(tx, row);
         }
       },

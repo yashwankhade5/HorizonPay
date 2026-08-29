@@ -61,9 +61,12 @@ export async function txValidator(params: {
     "Not pay instruction"
   );
 
+
   // 4. Amount
   const amount = readU64LE(data, 8);
+  
   assert(amount.toString() === expectedAmount, "Amount mismatch");
+
 
   // 5. Accounts
   assert(ix.keys.length === 8, "Invalid accounts length");

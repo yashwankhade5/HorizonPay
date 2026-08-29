@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useMerchantProfile, MerchantTransaction } from "@/hooks/useMerchantProfile";
 import { parseHexAmount, toUsdc, shortWallet } from "@/lib/api";
+import { Header } from "@/components/shared/Header";
 
 type TxStatus = "Confirmed" | "Failed" | "Pending" | "Success" | string;
 
@@ -149,32 +150,7 @@ export default function Transactions() {
       {/* Main */}
       <div className="flex-1 flex flex-col ml-[220px] min-w-0">
         {/* Header */}
-        <header className="h-14 bg-card border-b border-white/5 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-6">
-            <nav className="flex gap-4">
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Docs</a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Support</a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Changelog</a>
-            </nav>
-          </div>
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 border border-white/10 rounded-full px-3 py-1 bg-white/5">
-            <span className="text-xs text-muted-foreground">Merchant Status:</span>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-              <span className="text-xs font-medium text-emerald-400">Active</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-xs font-mono text-muted-foreground">
-              {data?.data?.merchantwallet ? shortWallet(data.data.merchantwallet) : "—"}
-            </div>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"><Bell className="w-4 h-4" /></button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"><HelpCircle className="w-4 h-4" /></button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"><Settings2 className="w-4 h-4" /></button>
-            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-xs font-bold shrink-0 ml-1 cursor-pointer">M</div>
-          </div>
-        </header>
-
+      <Header/>
         {/* Content */}
         <main className="flex-1 overflow-hidden flex flex-col p-8">
           {/* Page title + toolbar */}
